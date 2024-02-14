@@ -2,7 +2,11 @@
 
 This is my Linux setup and dotfiles. Feel free to use it.
 
-<!-- ![desktop screenshot](./images/2023-12-03_screenshot-desktop.png) -->
+![desktop screenshot](./images/desktop-screenshot-01.png)
+
+![desktop screenshot](./images/desktop-screenshot-02.png)
+
+![desktop screenshot](./images/desktop-screenshot-03.png)
 
 ## Table of Contents
 
