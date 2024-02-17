@@ -1,7 +1,5 @@
 # Linux Setup
 
-This is my Linux setup and dotfiles. Feel free to use it.
-
 ![desktop screenshot](./images/desktop-screenshot-01.png)
 
 ![desktop screenshot](./images/desktop-screenshot-02.png)
@@ -21,7 +19,11 @@ This is my Linux setup and dotfiles. Feel free to use it.
 
 ## Introduction
 
-This is my Linux setup and _dotfiles_. Feel free to use it.
+This is my Linux setup 🏕️ and _dotfiles_ 🌋. Feel free to use it 🚀🚀🚀.
+
+This is the setting for my personal _laptop_ 💻. It may be different if used for a _PC_ 🖥️ or other devices.
+
+🔥**Be careful**🔥 when copy all settings unless you know what that entails, just read information **in detail** 🥰 for each repository.
 
 Basically, I use:
 
@@ -29,7 +31,7 @@ Basically, I use:
 - [i3](https://i3wm.org/) - tilling window manager
 - [yay](https://github.com/Jguer/yay) - Arch Linux AUR helper tool
 
-Many thanks to my colleagues at **NDVN** for inspiring me and guiding me towards Linux. You guys are amazing and kind.
+🥳Many thanks🥳 to my colleagues at **NDVN** for inspiring me and guiding me towards Linux 👻. You guys are amazing 🤯 and kind 🐬.
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
 
