@@ -19,19 +19,54 @@
 
 ## Introduction
 
-✨ This is my Linux setup and _dotfiles_ ✨. Feel free to use it 🚀🚀🚀.
+✨ This is my Linux setup and _dotfiles_. **Feel free** to use it 🚀🚀🚀.
 
-This is the setting for my personal _laptop_ 💻. It may be different if used for a _PC_ 🖥️ or other devices.
+<br>
 
-🔥 **Be careful** 🔥 when copy all settings unless you know what that entails, just read information **in detail** 🥰 for each repository.
+> [!WARNING]
+>
+> - This is the setting for my personal _laptop_. It may be different if used for a _PC_ or other devices.
+> - **Be careful** when copy all settings unless you know what that entails, just read information **in detail** for each repository.
 
-Basically, I use:
+<br>
 
-- [EndeavourOS](https://endeavouros.com/) - Linux distribution based on [Arch Linux](https://archlinux.org/)
-- [i3](https://i3wm.org/) - tilling window manager
-- [yay](https://github.com/Jguer/yay) - Arch Linux AUR helper tool
+📝 Basically, I use:
 
-🥳 Many thanks 🥳 to my colleagues at **NDVN** for inspiring me and guiding me towards Linux 🛸. You guys are amazing 🤯 and kind 🐬.
+<details>
+  <summary>🪐 <a href="https://endeavouros.com">Endeavouros</a> - Linux distribution based on <a href="https://archlinux.org">Arch Linux</a>.
+  </summary>
+
+- Download ISO file on [link](https://endeavouros.com/#Download) based on area.
+- Dual boots with [Ventoy](https://github.com/ventoy/Ventoy).
+  ![Desktop screenshot](./images/ventoy-disk-screenshot.png)
+
+</details>
+
+<details>
+  <summary>
+    🤯 <a href="https://i3wm.org">i3wm</a> - tilling window manager.
+  </summary>
+
+- I love using i3 because it helps me increase my work efficiency and experience. Just press any keys to control instead of using my mouse.
+- Here is an default key binding. Follow more with [user guide](https://i3wm.org/docs/userguide.html).
+  ![desktop screenshot](./images/i3wm-intro-screenshot.png)
+
+</details>
+
+<details>
+  <summary>
+  🛠️ <a href="https://github.com/Jguer/yay">yay</a> - Arch Linux AUR helper tool.
+  </summary>
+
+- With _yay_ you can easily install, update and manage your packages.
+- Here is an example when using _yay_ to install VS Code.
+  ![Desktop screenshot](./images/yay-install-screenshot.png)
+
+</details>
+
+<br />
+
+🥳 Many thanks to my colleagues at **NDVN** for inspiring me and guiding me towards _Linux_. You guys are amazing and kind.
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
 
@@ -45,14 +80,13 @@ yay -S [package-name]
 
 Here is a list of packages:
 
-`extra/wezterm` `kitty` `tmux` `extra/neofetch` `extra/brightnessctl` `picom-git` `polybar` `fish` `extra/fisher` `git` `peco` `neovim` `eza` `starship` `htop` `redshift` `ttf-jetbrains-mono-nerd` `extra/noto-fonts-emoji` `nitrogen` `betterlockscreen` `flameshot` `visual-studio-code-bin` `jetbrains-toolbox` `docker` `docker-compose` `go` `i3lock-color` `arttime-git` `rofi-bluetooth-git` `extra/blueman` `network-dmenu-git` `appimagelauncher` `postman-bin` `firefox-developer-edition` `google-chrome` `microsoft-edge-dev-bin` `teams` `slack-desktop` `aur/prospect-mail` `extra/discord` `extra/telegram-desktop` `obsidian` `extra/calc` `aur/networkmanager-dmenu-git`
+`extra/wezterm` `tmux` `extra/neofetch` `extra/brightnessctl` `picom-git` `polybar` `fish` `extra/fisher` `git` `peco` `neovim` `eza` `starship` `htop` `redshift` `ttf-jetbrains-mono-nerd` `extra/noto-fonts-emoji` `nitrogen` `betterlockscreen` `flameshot` `visual-studio-code-bin` `jetbrains-toolbox` `docker` `docker-compose` `go` `i3lock-color` `arttime-git` `rofi-bluetooth-git` `extra/blueman` `network-dmenu-git` `appimagelauncher` `postman-bin` `firefox-developer-edition` `google-chrome` `microsoft-edge-dev-bin` `teams` `slack-desktop` `aur/prospect-mail` `extra/discord` `extra/telegram-desktop` `obsidian` `extra/calc` `aur/networkmanager-dmenu-git`
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
 
 ### i3 configs
 
 - [weztem](https://wezfurlong.org/wezterm/index.html) - A cross-platform terminal emulator and multiplexer.
-- [kitty](https://sw.kovidgoyal.net/kitty/)
 - [picom-git](https://wiki.archlinux.org/title/Picom) - A compositor for _Xorg_.
 - [polybar](https://github.com/polybar/polybar) - build beautiful and highly customizable status bars for their desktop environment.
 - [polybar-themes](https://github.com/adi1090x/polybar-themes) - A huge collection of polybar themes with different styles, colors and variants.
