@@ -33,10 +33,9 @@
 📝 Basically, I use:
 
 <details>
-  <summary>🪐 <a href="https://endeavouros.com">Endeavouros</a> - Linux distribution based on <a href="https://archlinux.org">Arch Linux</a>.
-  </summary>
+  <summary>🪐 <a href="https://fedoraproject.org/">Fedora</a></summary>
 
-- Download ISO file on [link](https://endeavouros.com/#Download) based on area.
+- Download ISO file on [link](https://fedoraproject.org/spins/cosmic/download) based on area.
 - Dual boots with [Ventoy](https://github.com/ventoy/Ventoy).
   ![Desktop screenshot](./images/ventoy-disk-screenshot.png)
 
@@ -44,22 +43,17 @@
 
 <details>
   <summary>
-    🤯 <a href="https://i3wm.org">i3wm</a> - tilling window manager.
+    🤯 <a href="https://system76.com/cosmic/">Cosmic</a> - Desktop Environment.
   </summary>
-
-- I love using i3 because it helps me increase my work efficiency and experience. Just press any keys to control instead of using my mouse.
-- Here is an default key binding. Follow more with [user guide](https://i3wm.org/docs/userguide.html).
-  ![desktop screenshot](./images/i3wm-intro-screenshot.png)
-
 </details>
 
 <details>
   <summary>
-  🛠️ <a href="https://github.com/Jguer/yay">yay</a> - Arch Linux AUR helper tool.
+  🛠️ <a href="https://github.com/rpm-software-management/dnf5">dnf</a> - RPM package management system.
   </summary>
 
-- With _yay_ you can easily install, update and manage your packages.
-- Here is an example when using _yay_ to install VS Code.
+- _DNF5_ is a command-line package manager that automates the process of installing, upgrading, configuring, and removing computer programs in a consistent manner. It supports RPM packages, modulemd modules, and comps groups and environments.
+- Here is an example when using `dnf` to install Firefox Developer Edition.
   ![Desktop screenshot](./images/yay-install-screenshot.png)
 
 </details>
