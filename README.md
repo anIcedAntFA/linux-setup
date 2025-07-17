@@ -115,5 +115,6 @@ This config has heavy inspiration from:
 
 - [devaslife](https://github.com/craftzdog/dotfiles-public) - Takuya Matsuyama
 - [mantran1611](https://github.com/manhtran1611/dotfiles) - Manh Tran
+- [lazarus2019](https://github.com/lazarus2019) - Thai Son
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
