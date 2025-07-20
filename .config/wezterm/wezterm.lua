@@ -11,13 +11,13 @@ if wezterm.config_builder then
 end
 
 config.font = wezterm.font 'JetBrains Mono'
-config.font_size = 14
+config.font_size = 12
 config.color_scheme = "Dracula (Official)"
 config.tab_bar_at_bottom = true
 config.use_fancy_tab_bar = false
 config.window_decorations = "RESIZE"
 
-config.window_background_opacity = 0.92
+config.window_background_opacity = 0.8
 
 local act = wezterm.action
  
