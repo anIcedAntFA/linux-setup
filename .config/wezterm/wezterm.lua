@@ -1,6 +1,14 @@
 -- Pull in the wezterm API
 local wezterm = require 'wezterm'
 
+function scheme_for_appearance(appearance)
+  if appearance:find "Dark" then
+    return "Dracula (Official)"
+  else
+    return "Catppuccin Latte"
+  end
+end
+
 -- This table will hold the configuration.
 local config = {}
 
@@ -11,13 +19,14 @@ if wezterm.config_builder then
 end
 
 config.font = wezterm.font 'JetBrains Mono'
-config.font_size = 12
-config.color_scheme = "Dracula (Official)"
+config.font_size = 13
+-- config.color_scheme = "Dracula (Official)"
+config.color_scheme = scheme_for_appearance(wezterm.gui.get_appearance())
 config.tab_bar_at_bottom = true
 config.use_fancy_tab_bar = false
 config.window_decorations = "RESIZE"
 
-config.window_background_opacity = 0.8
+config.window_background_opacity = 0.84
 
 local act = wezterm.action
  
