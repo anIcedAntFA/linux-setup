@@ -15,6 +15,7 @@
     - [Dependencies](#dependencies)
     - [i3 configs](#i3-configs)
     - [Shell configs](#shell-configs)
+    - [Applications](#applications)
   - [Credits](#credits)
 
 ## Introduction
@@ -33,9 +34,9 @@
 📝 Basically, I use:
 
 <details>
-  <summary>🪐 <a href="https://fedoraproject.org/">Fedora</a></summary>
+  <summary>🪐 <a href="https://endeavouros.com/">EndeavourOS</a></summary>
 
-- Download ISO file on [link](https://fedoraproject.org/spins/cosmic/download) based on area.
+- Download [ISO file](https://endeavouros.com/#Download).
 - Dual boots with [Ventoy](https://github.com/ventoy/Ventoy).
   ![Desktop screenshot](./images/ventoy-disk-screenshot.png)
 
@@ -49,11 +50,11 @@
 
 <details>
   <summary>
-  🛠️ <a href="https://github.com/rpm-software-management/dnf5">dnf</a> - RPM package management system.
+  🛠️ <a href="https://github.com/Jguer/yay">yay</a> - Arch Linux AUR helper tool.
   </summary>
 
-- _DNF5_ is a command-line package manager that automates the process of installing, upgrading, configuring, and removing computer programs in a consistent manner. It supports RPM packages, modulemd modules, and comps groups and environments.
-- Here is an example when using `dnf` to install Firefox Developer Edition.
+- With _yay_ you can easily install, update and manage your packages.
+- Here is an example when using _yay_ to install VS Code.
   ![Desktop screenshot](./images/yay-install-screenshot.png)
 
 </details>
@@ -68,7 +69,7 @@
 
 ### Dependencies
 
-```bash
+```sh
 yay -S [package-name]
 ```
 
@@ -81,15 +82,7 @@ Here is a list of packages:
 ### i3 configs
 
 - [weztem](https://wezfurlong.org/wezterm/index.html) - A cross-platform terminal emulator and multiplexer.
-- [picom-git](https://wiki.archlinux.org/title/Picom) - A compositor for _Xorg_.
-- [polybar](https://github.com/polybar/polybar) - build beautiful and highly customizable status bars for their desktop environment.
-- [polybar-themes](https://github.com/adi1090x/polybar-themes) - A huge collection of polybar themes with different styles, colors and variants.
-- [rofi](https://github.com/adi1090x/rofi) - A huge collection of Rofi based custom Applets, Launchers & Powermenus.
-- [ibus-bamboo](https://github.com/BambooEngine/ibus-bamboo) - Bộ gõ Tiếng Việt
-- [flameshot](https://flameshot.org/) - A cross-platform tool to take screenshots.
-- [nitrogen](https://github.com/l3ib/nitrogen/) - Background browser and setter for X windows.
 - [betterlockscreen](https://github.com/betterlockscreen/betterlockscreen) - 🍀 sweet looking lockscreen for linux system
-- [redshift](https://github.com/jonls/redshift) - Adjusts the color temperature of your screen according to your surroundings.
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
 
@@ -108,6 +101,10 @@ Here is a list of packages:
 - [rust](https://www.rust-lang.org/)
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
+
+### Applications
+
+-
 
 ## Credits
 
