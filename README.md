@@ -16,6 +16,11 @@
     - [i3 configs](#i3-configs)
     - [Shell configs](#shell-configs)
     - [Applications](#applications)
+  - [User guide](#user-guide)
+    - [Setup Docker](#setup-docker)
+    - [Public Port](#public-port)
+      - [1. Find Your Local IP Address](#1-find-your-local-ip-address)
+      - [2. Configure firewalld to Allow Incoming Connections](#2-configure-firewalld-to-allow-incoming-connections)
   - [Credits](#credits)
 
 ## Introduction
@@ -104,7 +109,84 @@ Here is a list of packages:
 
 ### Applications
 
--
+## User guide
+
+### Setup Docker
+
+### Public Port
+
+#### 1. Find Your Local IP Address
+
+Other devices on your network will need your computer's local IP address.
+Open your terminal and use either `ip a` or `ifconfig` (if you have `net-tools` installed):
+
+```sh
+ip a
+```
+
+Example output:
+
+```sh
+2: enp0s31f6: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+  link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
+  inet 192.168.1.100/24 brd 192.168.1.255 scope global dynamic noprefixroute enp0s31f6
+  valid_lft 86241sec preferred_lft 86241sec
+```
+
+In this example, your IP is `192.168.1.100`.
+
+#### 2. Configure firewalld to Allow Incoming Connections
+
+1. **Start and Enable `firewalld` service (if not already running):**
+   First, confirm the `firewalld` service is running and enabled to start on boot:
+
+   ```sh
+   sudo systemctl status firewalld
+   ```
+
+   If it's not running or not enabled, use:
+
+   ```sh
+   sudo systemctl enable firewalld --now
+   ```
+
+2. **Determine your active zone:**
+   `firewalld` uses zones to define trust levels. Common zones are `public`, `home`, `internal`.
+   To see which zone your `enp4s0` interface is assigned to:
+
+   ```sh
+   sudo firewall-cmd --get-active-zones
+   ```
+
+   You will likely see `public` or home associated with your `enp4s0` interface. Let's assume it's `public` for the next steps.
+
+3. **Add the port to your active zone:**
+   You need to permanently add the port `5173` (TCP) to the zone your `enp4s0` interface is in. Replace `your-active-zone` with the actual zone name (e.g., `public`, `home`).
+
+   ```sh
+   sudo firewall-cmd --permanent --zone=your-active-zone --add-port=5173/tcp
+   ```
+
+   For example, if your active zone is `public`:
+
+   ```sh
+   sudo firewall-cmd --permanent --zone=public --add-port=5173/tcp
+   ```
+
+4. **Reload `firewalld` to apply changes:**
+
+   ```sh
+   sudo firewall-cmd --reload
+   ```
+
+5. **Verify the rule:**
+   You can list the ports allowed in your zone to confirm the rule was added:
+
+   ```sh
+   sudo firewall-cmd --zone=your-active-zone --list-ports
+   ```
+
+   You should see `5173/tcp` in the output.
 
 ## Credits
 
