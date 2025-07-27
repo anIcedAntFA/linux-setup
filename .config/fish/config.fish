@@ -2,6 +2,9 @@ if status is-interactive
   # Commands to run in interactive sessions can go here
   alias gg="ghq get"
   alias pn=pnpm
+    alias cl=clear
+  alias conf=~/.config
+  alias zed=zeditor
 
   # Clipse Aliases
   alias cb="wezterm start  -- clipse" # Alias to quickly open Clipse TUI
