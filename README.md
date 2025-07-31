@@ -15,6 +15,12 @@
     - [Dependencies](#dependencies)
     - [i3 configs](#i3-configs)
     - [Shell configs](#shell-configs)
+    - [Applications](#applications)
+  - [User guide](#user-guide)
+    - [Setup Docker](#setup-docker)
+    - [Public Port](#public-port)
+      - [1. Find Your Local IP Address](#1-find-your-local-ip-address)
+      - [2. Configure firewalld to Allow Incoming Connections](#2-configure-firewalld-to-allow-incoming-connections)
   - [Credits](#credits)
 
 ## Introduction
@@ -33,9 +39,9 @@
 📝 Basically, I use:
 
 <details>
-  <summary>🪐 <a href="https://fedoraproject.org/">Fedora</a></summary>
+  <summary>🪐 <a href="https://endeavouros.com/">EndeavourOS</a></summary>
 
-- Download ISO file on [link](https://fedoraproject.org/spins/cosmic/download) based on area.
+- Download [ISO file](https://endeavouros.com/#Download).
 - Dual boots with [Ventoy](https://github.com/ventoy/Ventoy).
   ![Desktop screenshot](./images/ventoy-disk-screenshot.png)
 
@@ -49,11 +55,11 @@
 
 <details>
   <summary>
-  🛠️ <a href="https://github.com/rpm-software-management/dnf5">dnf</a> - RPM package management system.
+  🛠️ <a href="https://github.com/Jguer/yay">yay</a> - Arch Linux AUR helper tool.
   </summary>
 
-- _DNF5_ is a command-line package manager that automates the process of installing, upgrading, configuring, and removing computer programs in a consistent manner. It supports RPM packages, modulemd modules, and comps groups and environments.
-- Here is an example when using `dnf` to install Firefox Developer Edition.
+- With _yay_ you can easily install, update and manage your packages.
+- Here is an example when using _yay_ to install VS Code.
   ![Desktop screenshot](./images/yay-install-screenshot.png)
 
 </details>
@@ -68,7 +74,7 @@
 
 ### Dependencies
 
-```bash
+```sh
 yay -S [package-name]
 ```
 
@@ -81,15 +87,7 @@ Here is a list of packages:
 ### i3 configs
 
 - [weztem](https://wezfurlong.org/wezterm/index.html) - A cross-platform terminal emulator and multiplexer.
-- [picom-git](https://wiki.archlinux.org/title/Picom) - A compositor for _Xorg_.
-- [polybar](https://github.com/polybar/polybar) - build beautiful and highly customizable status bars for their desktop environment.
-- [polybar-themes](https://github.com/adi1090x/polybar-themes) - A huge collection of polybar themes with different styles, colors and variants.
-- [rofi](https://github.com/adi1090x/rofi) - A huge collection of Rofi based custom Applets, Launchers & Powermenus.
-- [ibus-bamboo](https://github.com/BambooEngine/ibus-bamboo) - Bộ gõ Tiếng Việt
-- [flameshot](https://flameshot.org/) - A cross-platform tool to take screenshots.
-- [nitrogen](https://github.com/l3ib/nitrogen/) - Background browser and setter for X windows.
 - [betterlockscreen](https://github.com/betterlockscreen/betterlockscreen) - 🍀 sweet looking lockscreen for linux system
-- [redshift](https://github.com/jonls/redshift) - Adjusts the color temperature of your screen according to your surroundings.
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
 
@@ -109,11 +107,93 @@ Here is a list of packages:
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)
 
+### Applications
+
+## User guide
+
+### Setup Docker
+
+### Public Port
+
+#### 1. Find Your Local IP Address
+
+Other devices on your network will need your computer's local IP address.
+Open your terminal and use either `ip a` or `ifconfig` (if you have `net-tools` installed):
+
+```sh
+ip a
+```
+
+Example output:
+
+```sh
+2: enp0s31f6: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+  link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
+  inet 192.168.1.100/24 brd 192.168.1.255 scope global dynamic noprefixroute enp0s31f6
+  valid_lft 86241sec preferred_lft 86241sec
+```
+
+In this example, your IP is `192.168.1.100`.
+
+#### 2. Configure firewalld to Allow Incoming Connections
+
+1. **Start and Enable `firewalld` service (if not already running):**
+   First, confirm the `firewalld` service is running and enabled to start on boot:
+
+   ```sh
+   sudo systemctl status firewalld
+   ```
+
+   If it's not running or not enabled, use:
+
+   ```sh
+   sudo systemctl enable firewalld --now
+   ```
+
+2. **Determine your active zone:**
+   `firewalld` uses zones to define trust levels. Common zones are `public`, `home`, `internal`.
+   To see which zone your `enp4s0` interface is assigned to:
+
+   ```sh
+   sudo firewall-cmd --get-active-zones
+   ```
+
+   You will likely see `public` or home associated with your `enp4s0` interface. Let's assume it's `public` for the next steps.
+
+3. **Add the port to your active zone:**
+   You need to permanently add the port `5173` (TCP) to the zone your `enp4s0` interface is in. Replace `your-active-zone` with the actual zone name (e.g., `public`, `home`).
+
+   ```sh
+   sudo firewall-cmd --permanent --zone=your-active-zone --add-port=5173/tcp
+   ```
+
+   For example, if your active zone is `public`:
+
+   ```sh
+   sudo firewall-cmd --permanent --zone=public --add-port=5173/tcp
+   ```
+
+4. **Reload `firewalld` to apply changes:**
+
+   ```sh
+   sudo firewall-cmd --reload
+   ```
+
+5. **Verify the rule:**
+   You can list the ports allowed in your zone to confirm the rule was added:
+
+   ```sh
+   sudo firewall-cmd --zone=your-active-zone --list-ports
+   ```
+
+   You should see `5173/tcp` in the output.
+
 ## Credits
 
 This config has heavy inspiration from:
 
 - [devaslife](https://github.com/craftzdog/dotfiles-public) - Takuya Matsuyama
 - [mantran1611](https://github.com/manhtran1611/dotfiles) - Manh Tran
+- [lazarus2019](https://github.com/lazarus2019) - Thai Son
 
 [`⬆ BACK TO TOP ⬆`](#table-of-contents)

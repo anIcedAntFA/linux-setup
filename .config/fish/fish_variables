@@ -8,8 +8,7 @@ SETUVAR Z_EXCLUDE:\x5e/home/ngockhoi96\x24
 SETUVAR __fish_initialized:3800
 SETUVAR _fisher_dracula_2F_fish_files:\x7e/\x2econfig/fish/themes/Dracula\x20Official\x2etheme\x1e\x7e/\x2econfig/fish/conf\x2ed/dracula\x2efish
 SETUVAR _fisher_jethrokuan_2F_z_files:\x7e/\x2econfig/fish/functions/__z\x2efish\x1e\x7e/\x2econfig/fish/functions/__z_add\x2efish\x1e\x7e/\x2econfig/fish/functions/__z_clean\x2efish\x1e\x7e/\x2econfig/fish/functions/__z_complete\x2efish\x1e\x7e/\x2econfig/fish/conf\x2ed/z\x2efish
-SETUVAR _fisher_jorgebucaran_2F_fisher_files:\x7e/\x2econfig/fish/functions/fisher\x2efish\x1e\x7e/\x2econfig/fish/completions/fisher\x2efish
-SETUVAR _fisher_plugins:jorgebucaran/fisher\x1ejethrokuan/z\x1edracula/fish
+SETUVAR _fisher_plugins:jethrokuan/z\x1edracula/fish
 SETUVAR _fisher_upgraded_to_4_4:\x1d
 SETUVAR fish_color_autosuggestion:brblack
 SETUVAR fish_color_cancel:\x2dr
