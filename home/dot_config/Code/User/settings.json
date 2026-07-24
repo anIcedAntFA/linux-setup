@@ -5,6 +5,10 @@
   "git.enableSmartCommit": true,
   "editor.cursorSmoothCaretAnimation": "on",
   "editor.suggest.preview": true,
+  "javascript.inlayHints.parameterNames.enabled": "all",
+  "typescript.inlayHints.parameterNames.enabled": "all",
+  "javascript.preferences.quoteStyle": "single",
+  "typescript.preferences.quoteStyle": "single",
   "[html]": {
     "editor.matchBrackets": "never"
   },
@@ -52,12 +56,20 @@
   "explorer.compactFolders": false,
   "terminal.integrated.fontFamily": "JetbrainMono Nerd Font",
   "go.toolsManagement.autoUpdate": true,
+  "rust-analyzer.debug.openDebugPane": true,
+  "rust-analyzer.assist.expressionFillDefault": "default",
+  "rust-analyzer.imports.granularity.enforce": true,
   "editor.accessibilitySupport": "off",
   "cSpell.diagnosticLevel": "Hint",
   "editor.cursorBlinking": "expand",
   "editor.cursorWidth": 4,
   "terminal.integrated.cursorWidth": 2,
   "css.lint.unknownAtRules": "ignore",
+  "tailwindCSS.includeLanguages": {
+    "html": "html",
+    "javascript": "javascript",
+    "css": "css"
+  },
   "errorLens.excludeBySource": ["ts(2779)"],
   "security.workspace.trust.untrustedFiles": "open",
   "window.titleBarStyle": "custom",
@@ -72,6 +84,11 @@
   },
   "markdown-preview-enhanced.previewTheme": "github-light.css",
   "markdown-preview-enhanced.codeBlockTheme": "github.css",
+  "mdx.validate.validateDuplicateLinkDefinitions": "warning",
+  "mdx.validate.validateFileLinks": "warning",
+  "mdx.validate.validateFragmentLinks": "warning",
+  "mdx.validate.validateMarkdownFileLinkFragments": "warning",
+  "mdx.validate.validateReferences": "warning",
   "window.density.editorTabHeight": "compact",
   "workbench.editor.highlightModifiedTabs": true,
   "workbench.editor.wrapTabs": true,
@@ -79,6 +96,7 @@
   "editor.fontSize": 18,
   "editor.defaultFormatter": "biomejs.biome",
   "github.copilot.nextEditSuggestions.enabled": true,
+  "github.copilot.editor.enableAutoCompletions": true,
   "biome.suggestInstallingGlobally": false,
   "debug.console.lineHeight": -1,
   "workbench.iconTheme": "material-icon-theme",
@@ -116,5 +134,6 @@
   "settingsSync.ignoredExtensions": ["bierner.markdown-preview-github-styles"],
   "chat.mcp.gallery.enabled": true,
   "docker.extension.enableComposeLanguageServer": false,
+  "makefile.configureOnOpen": false,
   "js/ts.updateImportsOnFileMove.enabled": "always"
 }
