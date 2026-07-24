@@ -21,7 +21,8 @@ fi
 
 echo "==> Installing VS Code extensions from packages/vscode-extensions.txt…"
 while IFS= read -r ext; do
-  [ -z "$ext" ] && continue
+  # Skip blank lines and # comments (the list is grouped with comment headers).
+  case "$ext" in '' | \#*) continue ;; esac
   code --install-extension "$ext" >/dev/null
 done <"$ext_list"
 echo "==> VS Code extension install complete."

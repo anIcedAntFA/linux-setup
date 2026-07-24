@@ -102,6 +102,18 @@ The multiplexer's own modal layer (`Ctrl+n` for resize…), shown in its status 
 Only exists when the optional zellij layer is running.
 _Avoid_: saying "resize mode" unqualified — both Ghostty and zellij have one.
 
+## VS Code extensions
+
+**Always-on extension** vs **On-demand extension**:
+The two curation groups in `packages/vscode-extensions.txt`. **Always-on** =
+editor-wide, language-agnostic tools kept globally enabled (themes, GitLens,
+formatters, spell check…). **On-demand** = language/framework/tool-specific ones
+kept globally _disabled_ and turned on per project via VS Code's _Enable
+(Workspace)_. The split is documentation — the installer installs both groups; VS
+Code can't install an extension pre-disabled.
+_Avoid_: "default" / "project" extension (ambiguous); implying the grouping
+auto-enables/disables anything.
+
 ## Identity
 
 **Identity** (personal / work):

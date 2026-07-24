@@ -1,13 +1,17 @@
+# VS Code extensions, split by enablement intent (see docs/vscode.md).
+# The install script installs ALL of them; the grouping is a curation aid, since
+# VS Code can't persistently "install disabled". Workflow: globally Disable the
+# on-demand group once, then Enable (Workspace) the ones a given project needs.
+# Move lines between the groups freely — it's documentation, not behaviour.
+# Snapshot of `code --list-extensions`; the groups mirror this machine's
+# global enable/disable state.
+
+# --- Always on (editor-wide, language-agnostic, or used most sessions) --------
 aaron-bond.better-comments
 adpyke.codesnap
-antfu.unocss
-astro-build.astro-vscode
-bbenoist.nix
+be5invis.vscode-custom-css
 bierner.markdown-preview-github-styles
 biomejs.biome
-bmalehorn.vscode-fish
-bradlc.vscode-tailwindcss
-chakra-ui.panda-css-vscode
 davidanson.vscode-markdownlint
 dbaeumer.vscode-eslint
 deinsoftware.vitest-snippets
@@ -16,18 +20,45 @@ dprint.dprint
 dracula-theme.theme-dracula
 dsznajder.es7-react-js-snippets
 eamodio.gitlens
-ecmel.vscode-html-css
 editorconfig.editorconfig
+hyzeta.vscode-theme-github-light
+pkief.material-icon-theme
+redhat.vscode-yaml
+shd101wyy.markdown-preview-enhanced
+streetsidesoftware.code-spell-checker
+usernamehw.errorlens
+yzhang.markdown-all-in-one
+
+# --- On demand (language / framework / tool specific; enable per workspace) ---
+# For THIS repo, Enable (Workspace): rvben.rumdl (CI lints Markdown with it),
+# foxundermoon.shell-format + bmalehorn.vscode-fish + timonwong.shellcheck
+# (`just fmt` runs shfmt/fish_indent), kdl-org.kdl, kokakiwi.vscode-just.
+#
+# Known overlaps, unresolved on purpose — pick one of each when you care:
+#   ms-azuretools.vscode-docker (deprecated) ⟂ docker.docker + …vscode-containers
+#   davidanson.vscode-markdownlint ⟂ rvben.rumdl   (same .markdownlint.yml)
+#   jock.svg ⟂ simonsiefke.svg-preview
+#   unifiedjs.vscode-mdx ⟂ xyc.vscode-mdx-preview
+#   louiswt.regexp-preview ⟂ monish.regexsnippets
+antfu.unocss
+astro-build.astro-vscode
+bbenoist.nix
+bmalehorn.vscode-fish
+bradlc.vscode-tailwindcss
+chakra-ui.panda-css-vscode
+dbaeumer.vscode-eslint
+deinsoftware.vitest-snippets
+docker.docker
+dsznajder.es7-react-js-snippets
+ecmel.vscode-html-css
 formulahendry.auto-close-tag
 formulahendry.auto-rename-tag
 foxundermoon.shell-format
 github.vscode-github-actions
 golang.go
 griimick.vhs
-hyzeta.vscode-theme-github-light
 jock.svg
 johnreemar.vscode-qwik-snippets
-jota0222.multi-formatter
 kdl-org.kdl
 kokakiwi.vscode-just
 louiswt.regexp-preview
@@ -38,16 +69,13 @@ ms-azuretools.vscode-docker
 ms-vscode.makefile-tools
 ms-vscode.vscode-typescript-next
 naumovs.color-highlight
-pkief.material-icon-theme
 pranaygp.vscode-css-peek
-redhat.vscode-yaml
 rust-lang.rust-analyzer
 rvben.rumdl
 shd101wyy.markdown-preview-enhanced
 sidthesloth.html5-boilerplate
 simonsiefke.svg-preview
 solnurkarim.html-to-css-autocompletion
-streetsidesoftware.code-spell-checker
 stylelint.vscode-stylelint
 svelte.svelte-vscode
 syler.sass-indented
@@ -55,7 +83,6 @@ tamasfe.even-better-toml
 tauri-apps.tauri-vscode
 timonwong.shellcheck
 unifiedjs.vscode-mdx
-usernamehw.errorlens
 vercel.turbo-vsc
 vue.volar
 vunguyentuan.vscode-postcss
@@ -63,4 +90,3 @@ wix.vscode-import-cost
 xyc.vscode-mdx-preview
 yandeu.five-server
 yoavbls.pretty-ts-errors
-yzhang.markdown-all-in-one

@@ -153,6 +153,7 @@ Each tool has a focused guide covering **what it is, why, and how to set it up**
 | [firewalld.md](docs/firewalld.md)                 | Exposing a dev server to your LAN                                                          |
 | [greetd.md](docs/greetd.md)                       | Login manager + tuigreet + quiet boot                                                      |
 | [xdg-environment.md](docs/xdg-environment.md)     | Env vars & desktop portals — `/etc/environment` vs `environment.d` vs `xdg-desktop-portal` |
+| [vscode.md](docs/vscode.md)                       | VS Code — themes, custom.css font weight, format-on-save routing, extensions               |
 | [fcitx5.md](docs/fcitx5.md)                       | Vietnamese input (Bamboo)                                                                  |
 | [screenshot.md](docs/screenshot.md)               | Screenshot pipeline (grim/slurp/satty)                                                     |
 | [screen-recording.md](docs/screen-recording.md)   | GPU screen recording (wl-screenrec)                                                        |

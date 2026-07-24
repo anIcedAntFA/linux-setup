@@ -21,6 +21,14 @@
   "[yaml]": {
     "editor.defaultFormatter": "dprint.dprint"
   },
+  // .github/workflows/*.yml gets the languageId "github-actions-workflow", not
+  // "yaml", so the [yaml] pin above does not cover it — and the user-scope
+  // [github-actions-workflow] pin (redhat.vscode-yaml) would win. dprint DOES
+  // format these files, so without this block a save here fails `dprint check`
+  // in CI.
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "dprint.dprint"
+  },
   "[json]": {
     "editor.defaultFormatter": "dprint.dprint"
   },
