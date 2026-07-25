@@ -1,0 +1,23 @@
+/*
+ * VS Code Custom CSS — loaded by be5invis.vscode-custom-css (see settings.json
+ * `vscode_custom_css.imports` and docs/vscode.md).
+ *
+ * Does the one thing VS Code settings can't: a per-color-scheme editor font
+ * weight. VS Code puts `vs` (light) / `vs-dark` (dark) on `.monaco-workbench`,
+ * which is how we branch.
+ *
+ * NOTE: after editing this file run `chezmoi apply`, then re-run "Enable Custom
+ * CSS and JS" from the palette. The extension inlines this file's *contents*
+ * into VS Code's workbench.html at enable time, so a plain Reload Window keeps
+ * showing the previously inlined copy.
+ *
+ * A depth texture (reusing Ghostty's background images) lived here too and was
+ * removed — see ADR 0011.
+ */
+
+/* `editor.fontWeight` in settings.json is the dark baseline (300). Light mode
+   bumps to 400 for legibility on the bright background. */
+.monaco-workbench.vs .monaco-editor,
+.monaco-workbench.vs .monaco-editor .view-line {
+    font-weight: 400 !important;
+}

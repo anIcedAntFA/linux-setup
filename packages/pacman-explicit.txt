@@ -23,6 +23,7 @@ cantarell-fonts
 cliphist
 cryptsetup
 curlie
+darkman
 device-mapper
 diffutils
 direnv

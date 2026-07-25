@@ -56,8 +56,18 @@ Three layers all get loosely called "workspace/tab/window"; keep them distinct.
 
 **niri workspace**:
 Compositor-level named workspace (`terminal`, `coding`, `browser`…), pinned to a
-monitor. Owns `Super`-prefixed keys. This is where a Ghostty _window_ lives.
-_Avoid_: calling a Ghostty tab a "workspace".
+monitor via `open-on-output`. Owns `Super`-prefixed keys. This is where a
+Ghostty _window_ lives.
+A workspace _name_ pins to at most one output — it does not represent a role.
+A role (e.g. "a browser lives here") can span more than one workspace name on
+the same machine when a single app can't be routed to two outputs (see
+`browser` vs `web`, [ADR 0009](docs/adr/0009-zen-browser-not-forced-across-outputs.md)).
+Separately, whether an app actually _lands_ on its pinned workspace depends on
+a window-rule's `open-on-workspace` — pinning the workspace to an output and
+forcing a window onto it are two independent mechanisms; not every app uses
+the second one.
+_Avoid_: calling a Ghostty tab a "workspace"; assuming a role name is unique
+per machine.
 
 **Ghostty tab** / **Ghostty split** (a split is a **pane**):
 Inside a single Ghostty window. Tabs are switched along the bottom bar; a split
@@ -91,6 +101,34 @@ _Avoid_: conflating with a leader (that one is one-shot) or a zellij mode.
 The multiplexer's own modal layer (`Ctrl+n` for resize…), shown in its status bar.
 Only exists when the optional zellij layer is running.
 _Avoid_: saying "resize mode" unqualified — both Ghostty and zellij have one.
+
+## Appearance
+
+**Color-scheme** (the _mode_):
+The system-wide dark/light preference — the `org.gnome.desktop.interface color-scheme`
+gsetting (`prefer-dark` / `prefer-light`), served to apps by the gtk XDG portal.
+[darkman](https://darkman.whynothugo.nl/) is its single writer, driven by both a
+sunrise/sunset schedule and a manual keybind. It is a _mode_, not a colour palette;
+it _selects_ a theme per app but is not itself one.
+_Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette.
+
+**Theme** (per app):
+The concrete palette an app shows for a given color-scheme mode — e.g. VS Code's
+Dracula ↔ Github Light, fish's Dracula Official ↔ Catppuccin Latte, niri's
+focus-ring colours. Each app maps the one color-scheme mode to its own two themes.
+_Avoid_: "color-scheme" for a single app's palette; assuming one global theme.
+
+## VS Code extensions
+
+**Always-on extension** vs **On-demand extension**:
+The two curation groups in `packages/vscode-extensions.txt`. **Always-on** =
+editor-wide, language-agnostic tools kept globally enabled (themes, GitLens,
+formatters, spell check…). **On-demand** = language/framework/tool-specific ones
+kept globally _disabled_ and turned on per project via VS Code's _Enable
+(Workspace)_. The split is documentation — the installer installs both groups; VS
+Code can't install an extension pre-disabled.
+_Avoid_: "default" / "project" extension (ambiguous); implying the grouping
+auto-enables/disables anything.
 
 ## Identity
 

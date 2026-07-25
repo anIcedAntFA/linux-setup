@@ -1,0 +1,15 @@
+# darkman — automatic + manual light/dark switching for this box.
+# How it fits together: docs/theme-sync.md · docs/adr/0010-darkman-behind-gtk-portal.md
+#
+# lat/lng feed the sunrise/sunset schedule. They come from the gitignored
+# chezmoi.toml (a home location is private data — never hard-coded here).
+lat: {{ .lat }}
+lng: {{ .lng }}
+# usegeoclue:false + explicit lat/lng = time-based auto transitions ON, no geoclue
+# daemon needed.
+usegeoclue: false
+# portal:false is deliberate. darkman does NOT act as the Settings portal here —
+# portals.conf routes Settings -> gtk. Instead darkman writes the gnome
+# color-scheme gsetting via ~/.local/share/darkman/set-color-scheme, and the gtk
+# portal broadcasts it. See ADR 0010 for why.
+portal: false
