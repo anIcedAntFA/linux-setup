@@ -10,6 +10,12 @@
 {{- $ghqRoot := promptStringOnce . "ghqRoot" "ghq root path" "~/workspace" -}}
 {{- $ghqCompanyRoot := promptStringOnce . "ghqCompanyRoot" "ghq company root path" "~/workspace/company" -}}
 {{- $installPackages := promptBoolOnce . "installPackages" "Install packages from packages/ on apply? (needs yay)" false -}}
+{{/* lat/lng: this box's approximate coordinates, used only by darkman to compute
+     sunrise/sunset for automatic light/dark switching. Kept out of the public repo
+     (per-machine, gitignored chezmoi.toml) — a home location is private data. One or
+     two decimals is plenty (https://xkcd.com/2170/). */}}
+{{- $lat := promptStringOnce . "lat" "Latitude for sunrise/sunset (darkman theme schedule)" "0" -}}
+{{- $lng := promptStringOnce . "lng" "Longitude for sunrise/sunset (darkman theme schedule)" "0" -}}
 {{/* machine: which physical box this is, so per-machine configs (e.g. niri
      outputs, DPI, startup apps) can branch on it. Generic form-factor label
      only — never a hostname or company tag. One of: work | laptop | home. */}}
@@ -26,3 +32,5 @@
     ghqCompanyRoot = {{ $ghqCompanyRoot | quote }}
     installPackages = {{ $installPackages }}
     machine = {{ $machine | quote }}
+    lat = {{ $lat | quote }}
+    lng = {{ $lng | quote }}

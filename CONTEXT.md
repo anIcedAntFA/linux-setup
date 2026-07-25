@@ -102,6 +102,22 @@ The multiplexer's own modal layer (`Ctrl+n` for resize…), shown in its status 
 Only exists when the optional zellij layer is running.
 _Avoid_: saying "resize mode" unqualified — both Ghostty and zellij have one.
 
+## Appearance
+
+**Color-scheme** (the _mode_):
+The system-wide dark/light preference — the `org.gnome.desktop.interface color-scheme`
+gsetting (`prefer-dark` / `prefer-light`), served to apps by the gtk XDG portal.
+[darkman](https://darkman.whynothugo.nl/) is its single writer, driven by both a
+sunrise/sunset schedule and a manual keybind. It is a _mode_, not a colour palette;
+it _selects_ a theme per app but is not itself one.
+_Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette.
+
+**Theme** (per app):
+The concrete palette an app shows for a given color-scheme mode — e.g. VS Code's
+Dracula ↔ Github Light, fish's Dracula Official ↔ Catppuccin Latte, niri's
+focus-ring colours. Each app maps the one color-scheme mode to its own two themes.
+_Avoid_: "color-scheme" for a single app's palette; assuming one global theme.
+
 ## VS Code extensions
 
 **Always-on extension** vs **On-demand extension**:

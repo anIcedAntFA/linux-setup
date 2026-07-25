@@ -399,6 +399,13 @@ binds {
 	Mod+B hotkey-overlay-title="Open a Browser: waterfox" { spawn "waterfox"; }
 	Super+Alt+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock"; }
 
+	// --- Appearance ---------------------------------------------------------
+	// dot-theme-toggle flips darkman's light/dark mode. It's an override of the
+	// automatic sunrise/sunset schedule that lasts until the next transition, not
+	// a lock. All portal-aware apps (VS Code, Ghostty, Chrome) + fish follow. See
+	// docs/theme-sync.md.
+	Mod+Shift+D hotkey-overlay-title="Toggle light/dark theme" { spawn "dot-theme-toggle"; }
+
 	// --- Screenshots / capture ----------------------------------------------
 	// dot-screenshot wires niri + grim/slurp into satty. See docs/niri.md.
 	Mod+S			 hotkey-overlay-title="Screenshot (region)" { spawn "dot-screenshot" "region"; }

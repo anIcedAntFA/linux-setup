@@ -1,0 +1,21 @@
+#!/bin/sh
+# Manual light/dark toggle, bound to Mod+Shift+D in niri.
+#
+# Flips darkman's mode right now; the sunrise/sunset schedule reclaims control at
+# the next transition — this is an override, not a lock. darkman's transition hook
+# (set-color-scheme -> gsettings -> gtk portal) does the actual re-theming; here we
+# only toast the result. Automatic transitions stay silent by design.
+# See docs/theme-sync.md.
+set -eu
+
+mode=$(darkman toggle)
+
+case "$mode" in
+dark) icon=weather-clear-night ;;
+light) icon=weather-clear ;;
+*) icon=preferences-desktop-theme ;;
+esac
+
+# A fresh one-shot notification each press (no --replace-id): the Noctalia daemon
+# mishandles replace ids.
+notify-send -a theme -i "$icon" "Theme: $mode" "System color-scheme switched to $mode."

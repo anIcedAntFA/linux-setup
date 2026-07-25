@@ -1,0 +1,26 @@
+{{- /* Enable + start the darkman user service so light/dark auto-switching runs.
+       Runs after files are applied (so the config is in place). Keyed on the
+       darkman config hash below, so editing the config re-triggers a restart.
+       Guarded to never break `chezmoi apply`: no-op if darkman isn't installed
+       yet, or if there's no reachable user systemd session (e.g. plain SSH). */ -}}
+{{- $cfg := joinPath .chezmoi.sourceDir "dot_config" "darkman" "config.yaml.tmpl" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Re-run trigger (do not edit — changes when the darkman config changes):
+#   config.yaml.tmpl: {{ output "sha256sum" $cfg | trim }}
+
+if ! command -v darkman >/dev/null 2>&1; then
+  echo "darkman not installed yet — skipping service enable. Install packages, then re-apply."
+  exit 0
+fi
+
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  echo "No reachable user systemd session — skipping darkman service enable."
+  exit 0
+fi
+
+echo "==> Enabling darkman.service (automatic light/dark switching)…"
+systemctl --user enable --now darkman.service
+# Pick up any config change carried by this apply.
+systemctl --user try-restart darkman.service || true

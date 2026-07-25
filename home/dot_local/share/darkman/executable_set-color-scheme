@@ -1,0 +1,21 @@
+#!/bin/sh
+# darkman transition hook. darkman runs it on BOTH the sunrise/sunset schedule and
+# a manual `darkman toggle`, passing the new mode ("dark" | "light") as $1.
+#
+# We mirror that mode into the gnome color-scheme gsetting. The gtk XDG portal
+# (Settings=gtk) then broadcasts it to every portal-aware app (VS Code
+# autoDetect, Ghostty, Chrome), and fish's auto-sync-theme reads the same key.
+# This is the single point that turns "darkman's mode" into "what apps see".
+# See docs/theme-sync.md.
+set -eu
+
+case "$1" in
+dark) scheme=prefer-dark ;;
+light) scheme=prefer-light ;;
+*)
+	echo "set-color-scheme: unknown mode '$1'" >&2
+	exit 1
+	;;
+esac
+
+gsettings set org.gnome.desktop.interface color-scheme "$scheme"

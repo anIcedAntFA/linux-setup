@@ -175,6 +175,9 @@
     "https://biomejs.dev": true
   },
   "accessibility.dimUnfocused.opacity": 0.8,
+  "window.autoDetectColorScheme": true,
+  "workbench.preferredLightColorTheme": "Github Light Theme",
+  "workbench.preferredDarkColorTheme": "Dracula Theme",
   "workbench.colorTheme": "Dracula Theme",
   "gitlens.ai.model": "vscode",
   "gitlens.ai.vscode.model": "copilot:gpt-4.1",
