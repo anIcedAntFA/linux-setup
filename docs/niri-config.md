@@ -57,7 +57,7 @@ and pulls per-machine scalars from one dictionary:
 {{- $profiles := dict
     "work"   (dict "cursor" 64 "gaps" 12 "ws" (dict "terminal" "HDMI-A-2" ...))
     "laptop" (dict "cursor" 32 "gaps" 8  "ws" (dict))
-    "home"   (dict "cursor" 48 "gaps" 12 "ws" (dict)) -}}
+    "home"   (dict "cursor" 64 "gaps" 12 "ws" (dict "terminal" "HDMI-A-1" ...)) -}}
 {{- $p := index $profiles $machine -}}
 ```
 
@@ -159,17 +159,51 @@ workspace "terminal" {
 }
 ```
 
-On `work`, `terminal`/`coding` pin to the portrait monitor and
-`browser`/`chatting`/`tools` to the landscape one. On single-monitor `laptop`,
-`$p.ws` is empty so no pinning is emitted and the names still exist.
+`work` and `home` share the same shape: `terminal`/`coding` pin to the portrait
+monitor (work `HDMI-A-2`, home `HDMI-A-1`) and `browser`/`chatting`/`tools` to the
+landscape one (work `DP-1`, home `DP-3`). On single-monitor `laptop`, `$p.ws` is
+empty so no pinning is emitted and the names still exist.
+
+**Pin every workspace on a multi-monitor profile.** A declared workspace with no
+`open-on-output` isn't skipped — it floats onto the first output and, because niri
+orders workspaces by creation, grabs **slot 1** there, pushing the intended
+occupant down. So each of the five names must appear in the `work` and `home`
+tables (even if two share an output). Single-monitor `laptop` is exempt: with one
+output the unpinned names just stack in declaration order.
 
 ### startup
 
-`spawn-at-startup` launches the shell (`qs -c noctalia-shell`), terminal, and
-browser on every machine. Slack + Teams are wrapped in `{{ if eq $machine "work"
-}}` so they only autostart on the office box. Use `spawn` for a plain exec
-(quote each argument separately) and `spawn-sh` when you need a shell (pipes,
-`~`, multiple commands).
+`spawn-at-startup` launches the shell (`qs -c noctalia-shell`) and terminal on
+every machine, plus `fcitx5` + `xsettingsd`. Machine blocks add the rest: `work`
+gets VS Code, `home` gets Discord — and `zen` plain-spawns only on single-monitor
+`laptop` (on `work`/`home` it's gated, see below). Use `spawn` for a plain exec
+(quote each argument separately) and `spawn-sh` when you need a shell (pipes, `~`,
+multiple commands).
+
+**The secondary-monitor startup race.** A window-rule's `open-on-workspace` can
+only route an app once its target named workspace exists, and niri creates an
+`open-on-output`-pinned workspace only after that monitor is enumerated. The
+_primary_ monitor (the one hosting `terminal`, that niri comes up on) is ready at
+login, so apps pinned there — ghostty and VS Code — spawn directly and route fine.
+A _secondary_ monitor (work's `DP-1`, home's `DP-3`) enumerates **after** login:
+any app launched before then has no target workspace and collapses onto that
+output's first slot. A fixed `sleep` only gambles against the display's init time
+on a given boot (a `sleep 3` on Teams still lost the race after a cold boot).
+
+So apps bound to a secondary monitor go through **`dot-niri-startup`**
+(`home/dot_local/bin/`, on `PATH`):
+
+```kdl
+spawn-at-startup "dot-niri-startup" "DP-1" "zen-browser" "google-chrome-stable" "slack" "teams-for-linux"
+```
+
+It polls `niri msg -j workspaces` until a **named** workspace reports that output
+(the exact precondition for routing), then launches each command in order with a
+small gap — so list order becomes left-to-right column order (zen takes the
+browser's left column, chrome the next). The poll is bounded (~30 s) so an
+unplugged monitor degrades to launching anyway instead of hanging the session.
+work gates its `DP-1` batch (zen/chrome/slack/teams); home gates its `DP-3` batch
+(zen/chrome/discord) — the two boxes are structurally identical.
 
 ### window rules
 
@@ -177,7 +211,8 @@ browser on every machine. Slack + Teams are wrapped in `{{ if eq $machine "work"
 `app-id` with `niri msg windows` (focus the window first). This config:
 
 - rounds every window's corners and dims inactive windows to `opacity 0.8`;
-- routes ghostty → `terminal`, VS Code → `coding`, Zen → `browser`, Slack/Teams →
+- routes ghostty → `terminal`, VS Code → `coding`, Zen **and** Chrome → `browser`
+  (zen spawns first, so it takes the first column), Slack/Teams/Discord →
   `chatting`, each `open-maximized` as appropriate;
 - floats the `tuxedo` todo TUI at a fixed size (launched with a custom app-id so
   this rule can catch it — see [tuxedo.md](tuxedo.md));
@@ -202,13 +237,15 @@ stay **last** so those colours win.
 
 ## Troubleshooting
 
-| Symptom                                | Check                                                        |
-| -------------------------------------- | ------------------------------------------------------------ |
-| Edit didn't take effect                | Did you `chezmoi apply`? niri reloads the rendered file.     |
-| `niri validate` fails on `{{`          | You pointed it at the `.tmpl`; use `just validate-niri`.     |
-| A monitor is misplaced / wrong mode    | `niri msg outputs`, then fix `mode`/`position`/`scale`.      |
-| Render error "unknown machine profile" | `machine` in `chezmoi.toml` isn't `work`/`laptop`/`home`.    |
-| Window opened on the wrong workspace   | `niri msg windows` → confirm the `app-id` your rule matches. |
+| Symptom                                              | Check                                                                                                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Edit didn't take effect                              | Did you `chezmoi apply`? niri reloads the rendered file.                                                                  |
+| `niri validate` fails on `{{`                        | You pointed it at the `.tmpl`; use `just validate-niri`.                                                                  |
+| A monitor is misplaced / wrong mode                  | `niri msg outputs`, then fix `mode`/`position`/`scale`.                                                                   |
+| Render error "unknown machine profile"               | `machine` in `chezmoi.toml` isn't `work`/`laptop`/`home`.                                                                 |
+| Window opened on the wrong workspace                 | `niri msg windows` → confirm the `app-id` your rule matches.                                                              |
+| Empty workspace grabbed slot 1 on a monitor          | A declared workspace has no `open-on-output` on this profile — add it to `$p.ws`.                                         |
+| Startup apps piled onto a secondary monitor's slot 1 | That output enumerates after login — route the apps through `dot-niri-startup <output> …`, not a bare `spawn-at-startup`. |
 
 ## References
 

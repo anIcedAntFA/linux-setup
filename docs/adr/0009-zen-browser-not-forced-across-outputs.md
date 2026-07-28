@@ -1,6 +1,19 @@
 # zen-browser is not forced onto a workspace on multi-monitor machines
 
-**Status:** accepted
+**Status:** superseded (2026-07-27)
+
+> **Superseded.** The `web` workspace was removed: both browsers now share the
+> single `browser` workspace on every machine (zen spawns first and takes the
+> first column, chrome the next), and `zen` is force-routed to `browser`
+> everywhere — the `{{ if ne $machine "home" }}` guard below is gone. The reason
+> was a preference change, not a defect: managing both browsers in one workspace
+> beat giving chrome its own monitor slot. The **technical finding still holds** —
+> zen is single-instance and reports `app-id="zen"` regardless of `--class`, so a
+> window-rule can only route _all_ zen windows to one place; that's now acceptable
+> because there is only one browser workspace to route to. The original decision
+> is kept below for history.
+
+---
 
 The `home` machine has two outputs that each want a browser: HDMI-A-1 hosts
 zen (the `browser` workspace) and DP-3 hosts chrome (a new `web` workspace).
