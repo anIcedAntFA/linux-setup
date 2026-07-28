@@ -4,14 +4,12 @@ bruno-bin
 flyctl
 google-breakpad
 google-chrome
-jetbrains-toolbox
-navicat-premium-lite-en
+lefthook
 noctalia-qs
 noctalia-shell
 papirus-folders-git
 peazip
 pgadmin4-bin
-postman-bin
 rate-mirrors-bin
 slack-desktop-wayland
 teams-for-linux-bin

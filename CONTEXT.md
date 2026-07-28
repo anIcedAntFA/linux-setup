@@ -117,6 +117,44 @@ Dracula ↔ Github Light, fish's Dracula Official ↔ Catppuccin Latte, niri's
 focus-ring colours. Each app maps the one color-scheme mode to its own two themes.
 _Avoid_: "color-scheme" for a single app's palette; assuming one global theme.
 
+## Packages
+
+Two orthogonal axes describe an installed package; the snapshot files in
+`packages/` each cut along one of them, so an app can sit in both.
+
+**Explicit** vs **Dependency**:
+Whether _you_ asked for a package by name (**explicit**, `pacman -Qqe`) or it was
+pulled in only to satisfy another package (**dependency**). Orthogonal to where it
+came from.
+_Avoid_: equating "explicit" with "official-repo" — an AUR app you installed by
+name is explicit too.
+
+**Native** vs **Foreign**:
+Whether a package comes from a sync database — an **official repo** (native) — or
+from outside one (**foreign**, `pacman -Qqm`): the AUR or a manual build.
+Orthogonal to explicit/dependency.
+_Avoid_: "foreign" as a synonym for AUR — a hand-built local package is foreign too
+(the AUR is just the usual source).
+
+**`pacman-explicit.txt`** vs **`aur.txt`** (the snapshots):
+`pacman-explicit.txt` = `pacman -Qqe` (everything explicit, native **and** foreign).
+`aur.txt` = `pacman -Qqm` (everything foreign). They overlap on every explicit
+foreign app — that's why e.g. `zen-browser-bin` appears in both; it is by design,
+not drift. Reference records only: nothing in the repo replays them.
+_Avoid_: treating a name's presence in both files as a bug.
+
+**Official repo** vs **AUR**:
+`core`/`extra`/`multilib` are **official repos** — binary, signed, maintained by
+Arch Package Maintainers (`community` was merged into `extra` in 2023);
+`endeavouros` is EOS's small distro repo. The **AUR** is not a binary repo at all —
+it's user-submitted `PKGBUILD` _recipes_, unvetted and unsigned, built locally by a
+helper (paru/yay). So it's a trust gradient: organisation-vetted (official) →
+individual/community, at-your-own-risk (AUR). A `-bin` suffix = an AUR recipe that
+ships a prebuilt binary instead of compiling from source (often the only path for
+proprietary apps kept out of the official repos for licensing).
+_Avoid_: calling the AUR a "repo" in the binary sense; assuming an AUR package is
+vetted the way an official one is.
+
 ## VS Code extensions
 
 **Always-on extension** vs **On-demand extension**:

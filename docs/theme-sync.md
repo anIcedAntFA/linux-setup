@@ -80,6 +80,16 @@ systemctl --user enable --now darkman.service
 Set this machine's coordinates when prompted at `chezmoi init` (`lat`/`lng`); one
 or two decimals is plenty ([relevant xkcd](https://xkcd.com/2170/)).
 
+Don't know them off-hand? Ask your IP — city-level precision is all darkman needs:
+
+```sh
+curl -s ipinfo.io   # read the "loc" field: "10.82,106.63" = lat,lng
+```
+
+Run it **off the work VPN**. Over GlobalProtect (or any VPN) `ipinfo.io` returns
+the exit datacenter's location, not yours — darkman would then flip light/dark on
+the wrong schedule. See [vpn.md](vpn.md).
+
 ## Verify
 
 ```sh

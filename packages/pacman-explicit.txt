@@ -104,7 +104,6 @@ intel-ucode
 inxi
 iptables
 iwd
-jetbrains-toolbox
 jfsutils
 jq
 lazydocker
@@ -133,7 +132,6 @@ mpv
 mtools
 nano
 nano-syntax-highlighting
-navicat-premium-lite-en
 neovim
 netctl
 networkmanager
@@ -174,7 +172,6 @@ pkgfile
 plocate
 poppler-glib
 postgresql
-postman-bin
 power-profiles-daemon
 pv
 python
