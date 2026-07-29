@@ -117,6 +117,19 @@ Dracula ↔ Github Light, fish's Dracula Official ↔ Catppuccin Latte, niri's
 focus-ring colours. Each app maps the one color-scheme mode to its own two themes.
 _Avoid_: "color-scheme" for a single app's palette; assuming one global theme.
 
+**Noctalia template** (theme-export):
+Noctalia's own mechanism for pushing its generated colour palette into _other_
+apps: an input template file is filled with the current palette and written to a
+target app's config, optionally running a reload hook. Built-in ones ship in
+`settings.json` under `templates.activeTemplates` (niri, yazi, zathura, btop, gtk,
+qt); custom ones go in `home/dot_config/noctalia/user-templates.toml`. It is **not**
+per-machine config and **not** a chezmoi template — a wholly separate meaning of
+"template". So the word carries three senses here: chezmoi `.tmpl` (fills
+`{{ .var }}` at apply), a Noctalia template (palette → another app's theme), and the
+generic sense — always qualify which.
+_Avoid_: reading `user-templates.toml` as a chezmoi/`.tmpl` thing or as machine
+branching; conflating a Noctalia template with the per-app **Theme** it produces.
+
 ## Packages
 
 Two orthogonal axes describe an installed package; the snapshot files in
