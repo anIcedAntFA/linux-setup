@@ -1,0 +1,45 @@
+#!/bin/sh
+# Ordered, output-gated autostart for apps whose niri workspace is pinned to a
+# *secondary* monitor. See docs/niri-config.md.
+#
+#   dot-niri-startup <output> <cmd> [<cmd> ...]
+#
+# Why this exists: niri creates an `open-on-output`-pinned named workspace only
+# once that monitor is enumerated, and a secondary monitor (e.g. DP-1) comes up
+# *after* login. Apps launched before then have no target workspace yet, so the
+# window-rules' `open-on-workspace` can't route them and they all collapse onto
+# the output's first slot. A fixed `sleep` just gambles against however long the
+# display takes to appear on a given boot.
+#
+# Instead: wait until at least one *named* workspace reports <output> -- the exact
+# precondition for routing -- then launch each <cmd> in order with a small gap so
+# earlier commands claim the leftmost columns (zen before chrome). Each <cmd> is a
+# single executable (no args); it's launched detached so this script can return.
+#
+# Spawned via spawn-at-startup in the niri config, so it inherits the session's
+# WAYLAND_DISPLAY and runs niri-session-only.
+set -eu
+
+output=$1
+shift
+
+# Bounded poll (~30s): don't hang the session forever on an unplugged output --
+# after the budget, launch anyway so a missing monitor degrades gracefully.
+tries=0
+while [ "$tries" -lt 150 ]; do
+	if niri msg -j workspaces |
+		jq -e --arg o "$output" 'any(.[]; .output == $o and .name != null)' \
+			>/dev/null 2>&1; then
+		break
+	fi
+	tries=$((tries + 1))
+	sleep 0.2
+done
+
+# List order == left-to-right column order: the gap lets each window open and
+# take its column before the next launches. `|| true` so one failed launch
+# doesn't abort the rest under `set -e`.
+for cmd in "$@"; do
+	setsid -f "$cmd" >/dev/null 2>&1 || true
+	sleep 1.5
+done

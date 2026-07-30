@@ -42,7 +42,7 @@
 	"home" (dict
 		"cursor" 64
 		"gaps"	 12
-		"ws"	 (dict "terminal" "HDMI-A-1" "coding" "HDMI-A-1" "browser" "HDMI-A-1" "web" "DP-3" "chatting" "DP-3")) -}}
+		"ws"	 (dict "terminal" "HDMI-A-1" "coding" "HDMI-A-1" "browser" "DP-3" "chatting" "DP-3" "tools" "DP-3")) -}}
 {{- $p := index $profiles $machine -}}
 {{- if not $p }}{{ fail (printf "niri config: unknown machine profile %q (want: work | laptop | home)" $machine) }}{{ end -}}
 
@@ -232,13 +232,6 @@ workspace "browser" {
 	open-on-output {{ . | quote }}
 	{{- end }}
 }
-// A second browser-role workspace: on `home`, DP-3 has its own browser slot
-// (chrome) distinct from HDMI-A-1's "browser" (zen). See docs/adr/0009.
-workspace "web" {
-	{{- with (index $p.ws "web") }}
-	open-on-output {{ . | quote }}
-	{{- end }}
-}
 workspace "chatting" {
 	{{- with (index $p.ws "chatting") }}
 	open-on-output {{ . | quote }}
@@ -253,23 +246,38 @@ workspace "tools" {
 // ============================================================================
 // STARTUP (spawn-at-startup)
 // ============================================================================
-// The shell, terminal and browser start everywhere.
+// The shell and terminal start everywhere.
 spawn-at-startup "qs" "-c" "noctalia-shell"
 spawn-at-startup "ghostty"
-spawn-at-startup "zen-browser"
 // Vietnamese input (fcitx5) and the GTK3/xsettings theme bridge -- both
 // machine-agnostic, so they start everywhere. See docs/fcitx5.md.
 spawn-at-startup "fcitx5"
 spawn-at-startup "xsettingsd"
+// zen is the browser on every box, but on `work` and `home` its "browser"
+// workspace lives on the secondary monitor (DP-1 / DP-3) -- so there it's
+// launched by the gated dot-niri-startup batch below, not here. Only
+// single-monitor `laptop` has "browser" on its lone (login-ready) output, so a
+// plain spawn is fine.
+{{- if eq $machine "laptop" }}
+spawn-at-startup "zen-browser"
+{{- end }}
 {{- if eq $machine "work" }}
-// Work chat clients -- only autostarted on the work machine.
-spawn-at-startup "slack"
-spawn-at-startup "sh" "-c" "sleep 3 && teams-for-linux"
+// Work apps. `code` -> coding on HDMI-A-2, the primary output that's ready at
+// login, so it spawns directly. The browser + chat apps all land on DP-1, a
+// secondary monitor that enumerates *after* login: launching them now races
+// niri's workspace creation and they collapse onto DP-1's first slot.
+// dot-niri-startup waits until DP-1's named workspaces exist, then launches them
+// in order -- zen first so it takes the browser's left column, chrome second.
+// See docs/niri-config.md.
+spawn-at-startup "code"
+spawn-at-startup "dot-niri-startup" "DP-1" "zen-browser" "google-chrome-stable" "slack" "teams-for-linux"
 {{- end }}
 {{- if eq $machine "home" }}
-// Home browser/chat clients -- DP-3's "web"/"chatting" slots.
-spawn-at-startup "google-chrome-stable"
-spawn-at-startup "discord"
+// Home mirrors work: browser + chat all land on DP-3, a secondary monitor that
+// enumerates *after* login. dot-niri-startup waits for DP-3's named workspaces,
+// then launches in order -- zen first (browser left column), chrome second, then
+// discord (routes to "chatting" regardless of order). See docs/niri-config.md.
+spawn-at-startup "dot-niri-startup" "DP-3" "zen-browser" "google-chrome-stable" "discord"
 {{- end }}
 
 // ============================================================================
@@ -311,21 +319,18 @@ window-rule {
 	open-maximized true
 }
 
+// Both browsers share the one "browser" workspace. zen spawns first
+// (spawn-at-startup order above), so it takes the first column and chrome the
+// next. See docs/adr/0009 (superseded) for the old per-output split.
 window-rule {
 	match app-id="zen"
-	{{- if ne $machine "home" }}
-	// Forced placement only on work/laptop, where zen has one home. On `home`
-	// zen needs to land on either HDMI-A-1's "browser" or DP-3's "web" workspace
-	// depending on where you opened it -- a forced rule would always snap it
-	// back to one, so it's left unforced there. See docs/adr/0009.
 	open-on-workspace "browser"
-	{{- end }}
 	open-maximized true
 }
 
 window-rule {
 	match app-id="google-chrome"
-	open-on-workspace "web"
+	open-on-workspace "browser"
 	open-maximized true
 }
 
@@ -336,7 +341,7 @@ window-rule {
 // }
 
 window-rule {
-	match app-id="Slack"
+	match app-id="slack"
 	open-on-workspace "chatting"
 	open-maximized false
 }
