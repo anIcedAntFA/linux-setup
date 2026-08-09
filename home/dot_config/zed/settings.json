@@ -6,7 +6,7 @@
 // see docs/zed.md and docs/adr/0013-zed-per-theme-font-weight-via-darkman-hook.md.
 {
   // ── Fonts & UI ────────────────────────────────────────────────────────────
-  "buffer_font_family": "JetBrainsMonoNL Nerd Font Mono",
+  "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "buffer_font_size": 18,
   "buffer_line_height": "comfortable",
   "tab_size": 2,
