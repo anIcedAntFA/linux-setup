@@ -113,8 +113,9 @@ _Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette.
 
 **Theme** (per app):
 The concrete palette an app shows for a given color-scheme mode — e.g. VS Code's
-Dracula ↔ Github Light, fish's Dracula Official ↔ Catppuccin Latte, niri's
-focus-ring colours. Each app maps the one color-scheme mode to its own two themes.
+Dracula ↔ Github Light, Zed's Dracula ↔ Catppuccin Latte, fish's Dracula Official
+↔ Catppuccin Latte, niri's focus-ring colours. Each app maps the one color-scheme
+mode to its own two themes.
 _Avoid_: "color-scheme" for a single app's palette; assuming one global theme.
 
 **Noctalia template** (theme-export):

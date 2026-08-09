@@ -19,8 +19,10 @@ Mod+Shift+D (toggle) ────┘   (writer)   (gsettings set …)           
                                                                        │  broadcasts
                             ┌──────────────────────────┬───────────────┴───────────┐
                             ▼                          ▼                            ▼
-                      VS Code (autoDetect)        Ghostty / Chrome            fish auto-sync-theme
+                      VS Code (autoDetect)        Ghostty / Chrome / Zed      fish auto-sync-theme
                       Dracula ↔ Github Light      (portal-aware)              Dracula ↔ Catppuccin Latte
+
+               Zed's font weight is the exception: it rides the set-color-scheme hook, not the portal.
 ```
 
 [darkman](https://darkman.whynothugo.nl/) is the **writer and scheduler**; the gtk
@@ -52,7 +54,10 @@ mode, and we deliberately didn't build one.
   `usegeoclue: false`, `portal: false`.
 - [`home/dot_local/share/darkman/executable_set-color-scheme`](../home/dot_local/share/darkman/executable_set-color-scheme)
   — darkman's transition hook; `$1` is `dark`/`light`, it runs `gsettings set …
-  color-scheme prefer-*`. Runs on **both** the schedule and manual toggles.
+  color-scheme prefer-*`. Runs on **both** the schedule and manual toggles. It
+  also `sed`-swaps Zed's `buffer_font_weight` (200 dark / 400 light), since Zed
+  has no native per-theme weight — see [zed.md](zed.md) and
+  [ADR 0013](adr/0013-zed-per-theme-font-weight-via-darkman-hook.md).
 - [`home/dot_local/bin/executable_dot-theme-toggle`](../home/dot_local/bin/executable_dot-theme-toggle)
   — the `Mod+Shift+D` target: `darkman toggle` + a one-shot `notify-send`.
 - `window.autoDetectColorScheme` + `workbench.preferred{Light,Dark}ColorTheme` in
@@ -60,6 +65,9 @@ mode, and we deliberately didn't build one.
   no script.
 - [`fish/functions/auto-sync-theme.fish`](../home/dot_config/fish/functions/auto-sync-theme.fish)
   — reads the same color-scheme key on shell start and picks the fish theme.
+- `theme.mode: "system"` in [Zed settings](../home/dot_config/zed/settings.json)
+  — native portal follow (Dracula ↔ Catppuccin Latte); its per-mode font weight
+  rides the `set-color-scheme` hook above. See [zed.md](zed.md).
 
 ## Install
 

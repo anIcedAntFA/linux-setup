@@ -155,6 +155,7 @@ Each tool has a focused guide covering **what it is, why, and how to set it up**
 | [xdg-environment.md](docs/xdg-environment.md)     | Env vars & desktop portals — `/etc/environment` vs `environment.d` vs `xdg-desktop-portal` |
 | [theme-sync.md](docs/theme-sync.md)               | System light/dark sync — darkman + gtk portal, auto schedule + keybind toggle              |
 | [vscode.md](docs/vscode.md)                       | VS Code — themes, custom.css font weight, format-on-save routing, extensions               |
+| [zed.md](docs/zed.md)                             | Zed — curated config, per-theme font weight, keymap cheat-sheet, extensions                |
 | [fcitx5.md](docs/fcitx5.md)                       | Vietnamese input (Bamboo)                                                                  |
 | [screenshot.md](docs/screenshot.md)               | Screenshot pipeline (grim/slurp/satty)                                                     |
 | [screen-recording.md](docs/screen-recording.md)   | GPU screen recording (wl-screenrec)                                                        |
