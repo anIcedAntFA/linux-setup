@@ -135,8 +135,11 @@
     "mdx": true, // MDX (srazzak/zed-mdx) — TS-in-MDX enabled via lsp.mdx below
     "svelte": true,
     "templ": true, // Go templ templates
+    // TS/JS is built-in (vtsls) — no extension. tsgo (TS7 native preview) is
+    // deliberately NOT used: it registers a 2nd TS server alongside vtsls
+    // (duplicate hovers/diagnostics) and drops tsserver plugins like
+    // @effect/language-service. See docs/zed.md.
     "toml": true,
-    "tsgo": true, // TypeScript language server
     "vue": true
   },
 

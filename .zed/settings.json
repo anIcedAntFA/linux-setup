@@ -10,11 +10,15 @@
   "format_on_save": "on",
   "languages": {
     "JSON": {
+      // Global Zed attaches Biome to JSON; this repo uses dprint and never
+      // Biome, so drop the Biome LS here (keeps json-language-server via "...").
+      "language_servers": ["!biome", "..."],
       "formatter": {
         "external": { "command": "dprint", "arguments": ["fmt", "--stdin", "{buffer_path}"] }
       }
     },
     "JSONC": {
+      "language_servers": ["!biome", "..."],
       "formatter": {
         "external": { "command": "dprint", "arguments": ["fmt", "--stdin", "{buffer_path}"] }
       }

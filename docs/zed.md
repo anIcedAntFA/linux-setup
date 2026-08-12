@@ -64,7 +64,7 @@ short. What each VS Code extension maps to:
 | Need                     | Zed                                                             |
 | ------------------------ | --------------------------------------------------------------- |
 | HTML / CSS / SCSS        | **built-in**                                                    |
-| JS / TS / TSX / JSX      | **built-in** (+ `tsgo` language server)                         |
+| JS / TS / TSX / JSX      | **built-in** (`vtsls`) — see note on tsgo below                 |
 | Go                       | **built-in** (gopls) + `golangci-lint`, `templ`                 |
 | Rust                     | **built-in** (rust-analyzer)                                    |
 | Tailwind                 | **built-in**                                                    |
@@ -82,6 +82,41 @@ short. What each VS Code extension maps to:
 | Biome                    | `biome` extension (LSP + formatter)                             |
 | Material icons / Dracula | `material-icon-theme` / `dracula` extensions                    |
 | Catppuccin Latte (light) | `catppuccin` extension                                          |
+
+> [!NOTE]
+> **tsgo is deliberately not installed.** The `tsgo` extension (TypeScript 7's
+> native-preview server, id `typescript-ls`) registers a _second_ TS language
+> server for JS/TS/TSX/JSX. With no `language_servers` pin, Zed attaches it
+> **alongside** the built-in `vtsls`, so both answer hover/completion/diagnostics
+> — the cause of stacked duplicate hover popovers. tsgo also can't load tsserver
+> plugins like `@effect/language-service`. We use `vtsls` only. To opt back in
+> deliberately, pin it per project in `.zed/`:
+> `"language_servers": ["typescript-ls", "!vtsls"]` (replace) or
+> `["typescript-ls", "vtsls"]` (tandem fallback — the tsgo docs say this
+> "eliminates duplicate diagnostics").
+
+> [!IMPORTANT]
+> **Overriding `language_servers` with `"..."` revives a _second_ TS server —
+> even without tsgo.** Zed's default TS set is `vtsls` only;
+> `typescript-language-server` is registered but **default-disabled**. Two docs
+> facts combine to bite: `"..."` re-includes _every_ registered server, and a
+> project `.zed/` array **replaces** the global one entirely
+> ([configuring-languages](https://zed.dev/docs/configuring-languages)). So the
+> moment a repo pins e.g. `["!biome", "..."]` for TS, `"..."` resurrects
+> `typescript-language-server` **alongside** `vtsls` → stacked duplicate hovers,
+> and a doubled `tsserver` (~1.3 GB wasted). Global settings can't prevent it
+> (the project array wins). Fix it in the **same array**; the canonical
+> TS-family (`TypeScript` / `TSX` / `JavaScript` / `JSX`) value when dropping
+> Biome is:
+>
+> ```jsonc
+> "language_servers": ["!biome", "!typescript-language-server", "..."]
+> ```
+>
+> JSON/CSS/etc. don't attract it, so those stay `["!biome", "..."]`. A repo with
+> **no** `.zed/` TS override needs nothing — the global default is already
+> single-server. Verify with `pgrep -af typescript-language-server` (should be
+> empty) and a one-popover hover.
 
 ### Gaps (no Zed extension yet)
 
@@ -240,8 +275,16 @@ This repo ships its own [`.zed/settings.json`](../.zed/settings.json), the
 counterpart of [`.vscode/settings.json`](../.vscode/settings.json): global Zed
 formats JSON with Biome, but this repo must use **dprint** (its CI enforces it),
 so `.zed/` re-pins md/json/jsonc/yaml/toml → dprint, shell → shfmt, fish →
-fish_indent. It is written self-contained (every language explicit) so any
-contributor formats it correctly regardless of their own global config.
+fish_indent. It also **disables the Biome language server** for JSON/JSONC
+(`"language_servers": ["!biome", "..."]`) — global Zed attaches Biome there, but
+this repo never uses it, so dropping it per-project stops a redundant server from
+loading (the general knob for "don't run this LS in this project"). This repo only
+overrides JSON/JSONC, which don't attract a second TS server — but a **TypeScript**
+repo using the same `["!biome", "..."]` trick must also add
+`!typescript-language-server` (see the IMPORTANT note under
+[Extensions](#extensions--vs-code-parity)), or `"..."` silently revives it. It is
+written self-contained (every language explicit) so any contributor formats it
+correctly regardless of their own global config.
 
 ## Gotchas
 
