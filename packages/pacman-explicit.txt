@@ -223,6 +223,7 @@ welcome
 wget
 which
 wireplumber
+witr
 wl-clipboard
 wlsunset
 wpa_supplicant

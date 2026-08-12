@@ -8,7 +8,7 @@
   // ── Fonts & UI ────────────────────────────────────────────────────────────
   "buffer_font_family": "JetBrainsMono Nerd Font Mono",
   "buffer_font_size": 18,
-  "buffer_line_height": "comfortable",
+  "buffer_line_height": { "custom": 1.5 },
   "tab_size": 2,
   // Light baseline. darkman's set-color-scheme hook rewrites this to 200
   // (ExtraLight) in dark mode and back to 400 in light — Zed has no native
@@ -34,12 +34,15 @@
   "completions": {
     "words_min_length": 4
   },
-  // Enabled so gopls / tsgo hints show (VS Code parity). This is a GLOBAL toggle
-  // — Zed has no per-language enable; toggle per-buffer if a file gets noisy.
+  // Value hints only (assignment results). Type + parameter hints are OFF to keep
+  // inline noise down. This is a GLOBAL, client-side filter — Zed has no per-language
+  // enable, so it ALSO gates gopls's Go hints (lsp.gopls.hints below computes them,
+  // this hides them). Toggle per-buffer, or flip the two `false`s to surface them.
   "inlay_hints": {
     "enabled": true,
-    "show_type_hints": true,
-    "show_parameter_hints": true,
+    "show_value_hints": true,
+    "show_type_hints": false,
+    "show_parameter_hints": false,
     "show_other_hints": true,
     "scroll_debounce_ms": 60,
     "edit_debounce_ms": 701
@@ -65,10 +68,16 @@
   "minimum_split_diff_width": 80.0,
   "expand_excerpt_lines": 6,
   "outline_panel": {
+    "indent_size": 14.0,
     "expand_outlines_with_depth": 80
   },
   "project_panel": {
+    "entry_spacing": "standard",
+    "indent_size": 14.0,
     "dock": "left"
+  },
+  "markdown_preview": {
+    "max_width": 1000.0
   },
   "markdown_preview_code_font_family": ".ZedMono",
   "markdown_preview_font_family": ".ZedSans",
@@ -261,7 +270,9 @@
           "useany": true,
           "nilness": true
         },
-        // Content of Go inlay hints (the feature toggle is inlay_hints above).
+        // Content of Go inlay hints — computed by gopls, but currently HIDDEN by the
+        // value-only inlay_hints filter above (show_type/parameter_hints = false).
+        // Kept so flipping those back on immediately restores rich Go hints.
         "hints": {
           "assignVariableTypes": true,
           "compositeLiteralFields": true,

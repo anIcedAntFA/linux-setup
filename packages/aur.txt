@@ -16,5 +16,6 @@ teams-for-linux-bin
 tuxedo
 visual-studio-code-bin
 waterfox-bin
+witr
 wl-screenrec-git
 zen-browser-bin
