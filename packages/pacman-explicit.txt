@@ -249,3 +249,4 @@ zellij
 zen-browser-bin
 zip
 zoxide
+zram-generator
