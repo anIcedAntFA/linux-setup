@@ -14,9 +14,16 @@
   // (ExtraLight) in dark mode and back to 400 in light — Zed has no native
   // per-theme font weight. Keep the key on one line: the hook edits it by sed.
   "buffer_font_weight": 400,
+  "ui_font_family": "JetBrainsMono Nerd Font",
   "ui_font_size": 16,
+  "ui_font_weight": 400,
   "cursor_shape": "block",
   "unnecessary_code_fade": 0.4,
+  // Agent panel fonts — match the editor's Nerd Font (cosmetic only; the agent's
+  // model/server config is deliberately left untracked, see the AI section).
+  "agent_ui_font_family": "JetBrainsMono Nerd Font",
+  "agent_ui_font_size": 16,
+  "agent_buffer_font_size": 16,
 
   // ── Theme — follows the system color-scheme (darkman → gtk portal) ─────────
   "theme": {
@@ -66,6 +73,7 @@
   "horizontal_scroll_margin": 4.0,
   "vertical_scroll_margin": 4.0,
   "minimum_split_diff_width": 80.0,
+  "diff_view_style": "unified",
   "expand_excerpt_lines": 6,
   "outline_panel": {
     "indent_size": 14.0,
@@ -79,8 +87,9 @@
   "markdown_preview": {
     "max_width": 1000.0
   },
-  "markdown_preview_code_font_family": ".ZedMono",
-  "markdown_preview_font_family": ".ZedSans",
+  "markdown_preview_font_size": 18,
+  "markdown_preview_code_font_family": "JetBrainsMono Nerd Font Mono",
+  "markdown_preview_font_family": "JetBrainsMono Nerd Font",
 
   // ── Git / terminal / workspace ────────────────────────────────────────────
   "git": {
@@ -119,6 +128,12 @@
   // never in this file, so it is safe in a public repo.
   "edit_predictions": {
     "provider": "zed"
+  },
+  // Agent panel docked right. Only the dock is tracked — model/server picks
+  // (favorite_models, model_parameters, github-copilot-cli, …) are volatile,
+  // per-machine runtime state and deliberately left out of the repo.
+  "agent": {
+    "dock": "right"
   },
   "agent_servers": {
     "claude-acp": {
