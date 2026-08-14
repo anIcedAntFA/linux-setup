@@ -12,6 +12,39 @@ lives **outside** this public repo. The one place private bytes (passwords, cert
 are kept.
 _Avoid_: vault, password DB, keychain.
 
+**Secret Service**:
+The freedesktop D-Bus API `org.freedesktop.secrets` that desktop apps (Zed, Chrome
+via libsecret) call to save and fetch credentials — an _interface_, not a program.
+Whichever provider is running answers it: gnome-keyring here, KWallet or
+`pass-secret-service` elsewhere. Distinct from the **Store**: the Secret Service is
+the machine-local desktop keychain apps reach _automatically_; the Store is the
+CLI/git-synced gopass repo you drive _by hand_. A niri session started by greetd
+ships **no** provider by default — that gap is what makes apps re-login every launch.
+_Avoid_: calling gnome-keyring "the Secret Service" (it's one implementation of it);
+using "keychain" for the Store.
+
+**Keyring** (`login` vs others):
+gnome-keyring's own encrypted file(s) under `~/.local/share/keyrings/` (e.g.
+`login.keyring`, a legacy `Default.keyring`) that back the Secret Service — the
+concrete store behind the API. Each keyring carries its **own** password. The one
+named **`login`** is the one PAM unlocks with your login password at session start
+(seamless, no prompt); any other keyring keeps its own password and stays locked
+until something unlocks it. A keyring's _name_ does not by itself cause a prompt —
+whether you see one is decided by the **Default alias**, not the name.
+_Avoid_: conflating a keyring (gnome-keyring's store) with the Secret Service (the API
+in front of it), or with the gopass Store (a third, separate thing); treating "Default"
+as a magic fallback name (it's just a keyring that isn't `login`).
+
+**Default alias**:
+The `~/.local/share/keyrings/default` pointer — exposed on D-Bus as the Secret
+Service's `default` collection — naming **which keyring** apps get when they don't ask
+for one by name. This is where the prompt-or-not outcome is actually decided: if the
+alias resolves to a keyring PAM didn't unlock (e.g. a leftover `Default`), the first
+app to use it fires the "unlock keyring" dialog — even while `login` sits unlocked and
+empty. Point the alias at `login` and the prompt is gone.
+_Avoid_: "default collection" / "default keyring" for the pointer (say _default
+alias_); assuming a keyring's _name_, rather than the alias, picks the default.
+
 **Trust anchor** (or _anchor_):
 A CA certificate file under `/etc/ca-certificates/trust-source/anchors/`. It is the
 **source of truth**; the matching files in `/etc/ssl/certs/` are generated from it
@@ -49,6 +82,19 @@ shell** is [fish](https://fishshell.com/) — the interactive command shell in t
 terminal. When a doc or the README says "shell" unqualified, prefer one of these
 two labels.
 _Avoid_: bare "shell" (ambiguous); "bar"/"panel" for Noctalia (it's the whole shell).
+
+**Login session** vs **systemd user session** vs **Wayland session**:
+Three "sessions" in the boot chain, easy to smear together. The **login session** is
+what [greetd](docs/greetd.md) + PAM open when you authenticate — tracked by
+systemd-logind, owning `seat0`. The **Wayland session** is the entry the greeter
+offers: a `.desktop` in `/usr/share/wayland-sessions/` whose `Exec` (here
+`niri-session`) starts the compositor. The **systemd user session** is the
+`systemctl --user` instance `niri-session` sets up (imports the env, brings up
+`graphical-session.target`). One login → one Wayland session → one systemd user
+session.
+_Avoid_: bare "session" (say which); conflating any of these with a **niri
+workspace**, a **Multiplexer session** (zellij), or the Secret Service's own notion
+of a keyring "session".
 
 ## Terminal workspace layers
 

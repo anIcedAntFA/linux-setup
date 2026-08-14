@@ -1,0 +1,24 @@
+#%PAM-1.0
+
+# greetd login PAM stack + gnome-keyring auto-unlock.
+#
+# The three `pam_gnome_keyring.so` lines are the ONLY additions over the Arch
+# default; everything else mirrors the distro's /etc/pam.d/greetd. They let the
+# password you type in tuigreet unlock the "login" keyring at session start, so
+# the Secret Service (org.freedesktop.secrets) is running AND unlocked for the
+# whole graphical session. Apps that stash credentials in the system keychain —
+# Zed's GitHub sign-in token, AI provider API keys — then persist across restarts
+# and across relaunches (without a provider, Zed re-prompts every launch).
+#
+# All three are `optional`: if the module is missing or errors, login is NOT
+# blocked. Requires the `gnome-keyring` package (provides pam_gnome_keyring.so).
+# See docs/greetd.md.
+
+auth       required     pam_securetty.so
+auth       requisite    pam_nologin.so
+auth       include      system-local-login
+auth       optional     pam_gnome_keyring.so
+account    include      system-local-login
+password   optional     pam_gnome_keyring.so
+session    include      system-local-login
+session    optional     pam_gnome_keyring.so auto_start

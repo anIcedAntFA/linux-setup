@@ -81,6 +81,7 @@ github-cli
 gitleaks
 glances
 globalprotect-openconnect
+gnome-keyring
 gnupg
 go
 google-chrome

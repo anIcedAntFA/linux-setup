@@ -152,6 +152,7 @@ Each tool has a focused guide covering **what it is, why, and how to set it up**
 | [docker.md](docs/docker.md)                       | Engine setup, rootless usage, daemon config                                                |
 | [firewalld.md](docs/firewalld.md)                 | Exposing a dev server to your LAN                                                          |
 | [greetd.md](docs/greetd.md)                       | Login manager + tuigreet + quiet boot                                                      |
+| ⤷ [secret-service.md](docs/secret-service.md)     | Desktop keychain — gnome-keyring/PAM auto-unlock, Secret Service, gopass alternative       |
 | [zram.md](docs/zram.md)                           | Compressed RAM swap — OOM resilience (why zero-swap kills apps)                            |
 | [xdg-environment.md](docs/xdg-environment.md)     | Env vars & desktop portals — `/etc/environment` vs `environment.d` vs `xdg-desktop-portal` |
 | [theme-sync.md](docs/theme-sync.md)               | System light/dark sync — darkman + gtk portal, auto schedule + keybind toggle              |
