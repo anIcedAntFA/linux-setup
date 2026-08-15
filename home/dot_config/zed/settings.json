@@ -1,0 +1,311 @@
+// Zed settings — curated. Only intentional overrides live here; run
+// `zed: open default settings` from the command palette to see everything else.
+// Managed by chezmoi (home/dot_config/zed/). Companion: keymap.json.
+//
+// `buffer_font_weight` is swapped per color-scheme by darkman, not by Zed —
+// see docs/zed.md and docs/adr/0013-zed-per-theme-font-weight-via-darkman-hook.md.
+{
+  // ── Fonts & UI ────────────────────────────────────────────────────────────
+  "buffer_font_family": "JetBrainsMono Nerd Font Mono",
+  "buffer_font_size": 18,
+  "buffer_line_height": { "custom": 1.5 },
+  "tab_size": 2,
+  // Light baseline. darkman's set-color-scheme hook rewrites this to 200
+  // (ExtraLight) in dark mode and back to 400 in light — Zed has no native
+  // per-theme font weight. Keep the key on one line: the hook edits it by sed.
+  "buffer_font_weight": 400,
+  "ui_font_family": "JetBrainsMono Nerd Font",
+  "ui_font_size": 16,
+  "ui_font_weight": 400,
+  "cursor_shape": "block",
+  "unnecessary_code_fade": 0.4,
+  // Agent panel fonts — match the editor's Nerd Font (cosmetic only; the agent's
+  // model/server config is deliberately left untracked, see the AI section).
+  "agent_ui_font_family": "JetBrainsMono Nerd Font",
+  "agent_ui_font_size": 16,
+  "agent_buffer_font_size": 16,
+
+  // ── Theme — follows the system color-scheme (darkman → gtk portal) ─────────
+  "theme": {
+    "mode": "system",
+    "light": "Catppuccin Latte",
+    "dark": "Dracula"
+  },
+  "icon_theme": "Material Icon Theme",
+
+  // ── Editor behaviour ──────────────────────────────────────────────────────
+  "base_keymap": "VSCode",
+  "cli_default_open_behavior": "existing_window",
+  "format_on_save": "on",
+  "linked_edits": true, // auto-rename the paired HTML/JSX closing tag
+  "completions": {
+    "words_min_length": 4
+  },
+  // Value hints only (assignment results). Type + parameter hints are OFF to keep
+  // inline noise down. This is a GLOBAL, client-side filter — Zed has no per-language
+  // enable, so it ALSO gates gopls's Go hints (lsp.gopls.hints below computes them,
+  // this hides them). Toggle per-buffer, or flip the two `false`s to surface them.
+  "inlay_hints": {
+    "enabled": true,
+    "show_value_hints": true,
+    "show_type_hints": false,
+    "show_parameter_hints": false,
+    "show_other_hints": true,
+    "scroll_debounce_ms": 60,
+    "edit_debounce_ms": 701
+  },
+  "diagnostics": {
+    "inline": {
+      "enabled": true // Error Lens-style inline errors/warnings
+    }
+  },
+  "sticky_scroll": {
+    "enabled": true
+  },
+  "which_key": {
+    "enabled": true
+  },
+  "hover_popover_delay": 400,
+  "hover_popover_hiding_delay": 400,
+  "drag_and_drop_selection": {
+    "delay": 400
+  },
+  "horizontal_scroll_margin": 4.0,
+  "vertical_scroll_margin": 4.0,
+  "minimum_split_diff_width": 80.0,
+  "diff_view_style": "unified",
+  "expand_excerpt_lines": 6,
+  "outline_panel": {
+    "indent_size": 14.0,
+    "expand_outlines_with_depth": 80
+  },
+  "project_panel": {
+    "entry_spacing": "standard",
+    "indent_size": 14.0,
+    "dock": "left"
+  },
+  "markdown_preview": {
+    "max_width": 1000.0
+  },
+  "markdown_preview_font_size": 18,
+  "markdown_preview_code_font_family": "JetBrainsMono Nerd Font Mono",
+  "markdown_preview_font_family": "JetBrainsMono Nerd Font",
+
+  // ── Git / terminal / workspace ────────────────────────────────────────────
+  "git": {
+    "inline_blame": {
+      "enabled": true // GitLens-style current-line blame (native + git-firefly)
+    }
+  },
+  "terminal": {
+    // `git commit`, `jj`, etc. in the integrated terminal open the file back in
+    // this Zed instead of vi. `--wait` blocks until the tab is closed.
+    "env": {
+      "EDITOR": "zed --wait"
+    }
+  },
+  // Keep build/vendor dirs out of the file finder and project search. NOTE: this
+  // REPLACES Zed's default list, so the VCS entries below must stay.
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/.DS_Store",
+    "**/Thumbs.db",
+    "**/node_modules",
+    "**/.next",
+    "**/.turbo",
+    "**/dist",
+    "**/.cache"
+  ],
+
+  // ── AI ────────────────────────────────────────────────────────────────────
+  // Edit predictions default to Zeta (Zed's own model): no monthly cap, works on
+  // every machine signed into a Zed account. On the work machine switch to
+  // Copilot Enterprise by hand → "provider": "copilot" (a `chezmoi apply` will
+  // reset it back to "zed"; see docs/zed.md). Claude is too slow for inline
+  // predictions — it's an Agent, below. API keys live in the system keychain,
+  // never in this file, so it is safe in a public repo.
+  "edit_predictions": {
+    "provider": "zed"
+  },
+  // Agent panel docked right. Only the dock is tracked — model/server picks
+  // (favorite_models, model_parameters, github-copilot-cli, …) are volatile,
+  // per-machine runtime state and deliberately left out of the repo.
+  "agent": {
+    "dock": "right"
+  },
+  "agent_servers": {
+    "claude-acp": {
+      "type": "registry"
+    }
+  },
+
+  // ── Extensions — auto-installed on a fresh machine (the backup manifest) ───
+  "auto_install_extensions": {
+    "astro": true,
+    "biome": true,
+    "catppuccin": true, // light theme (Catppuccin Latte)
+    "dockerfile": true,
+    "dracula": true, // dark theme
+    "editorconfig": true,
+    "fish": true,
+    "git-firefly": true, // GitLens-style blame / history
+    "golangci-lint": true,
+    "html": true,
+    "just": true,
+    "markdown-oxide": true,
+    "material-icon-theme": true,
+    "mdx": true, // MDX (srazzak/zed-mdx) — TS-in-MDX enabled via lsp.mdx below
+    "svelte": true,
+    "templ": true, // Go templ templates
+    // TS/JS is built-in (vtsls) — no extension. tsgo (TS7 native preview) is
+    // deliberately NOT used: it registers a 2nd TS server alongside vtsls
+    // (duplicate hovers/diagnostics) and drops tsserver plugins like
+    // @effect/language-service. See docs/zed.md.
+    "toml": true,
+    "vue": true
+  },
+
+  // ── Per-language format/lint — mirrors the VS Code setup ──────────────────
+  // Biome owns JS/TS/JSON; dprint owns md/yaml/toml; shfmt/fish_indent for
+  // shells. ESLint stays diagnostics-only (legacy repos) — deliberately no
+  // fixAll on save, since new code uses Biome + oxlint. dprint/shfmt/fish_indent
+  // must be on PATH (mise provides them) — see docs/zed.md.
+  "languages": {
+    "JavaScript": {
+      "formatter": {
+        "language_server": {
+          "name": "biome"
+        }
+      },
+      "code_actions_on_format": {
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
+      }
+    },
+    "TypeScript": {
+      "formatter": {
+        "language_server": {
+          "name": "biome"
+        }
+      },
+      "code_actions_on_format": {
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
+      }
+    },
+    "TSX": {
+      "formatter": {
+        "language_server": {
+          "name": "biome"
+        }
+      },
+      "code_actions_on_format": {
+        "source.fixAll.biome": true,
+        "source.organizeImports.biome": true
+      }
+    },
+    "JSON": {
+      "formatter": {
+        "language_server": {
+          "name": "biome"
+        }
+      }
+    },
+    "JSONC": {
+      "formatter": {
+        "language_server": {
+          "name": "biome"
+        }
+      }
+    },
+    "Markdown": {
+      "formatter": {
+        "external": {
+          "command": "dprint",
+          "arguments": ["fmt", "--stdin", "{buffer_path}"]
+        }
+      },
+      // dprint marks a hard line break with two trailing spaces — keep them.
+      "remove_trailing_whitespace_on_save": false
+    },
+    "YAML": {
+      "formatter": {
+        "external": {
+          "command": "dprint",
+          "arguments": ["fmt", "--stdin", "{buffer_path}"]
+        }
+      }
+    },
+    "TOML": {
+      "formatter": {
+        "external": {
+          "command": "dprint",
+          "arguments": ["fmt", "--stdin", "{buffer_path}"]
+        }
+      }
+    },
+    "Shell Script": {
+      "formatter": {
+        "external": {
+          "command": "shfmt",
+          "arguments": ["-i", "2", "-"]
+        }
+      }
+    },
+    "Fish": {
+      "formatter": {
+        "external": {
+          "command": "fish_indent",
+          "arguments": []
+        }
+      }
+    },
+    "Go": {
+      // Organize imports first (code action), then let gopls format — gopls
+      // applies gofumpt because "gofumpt": true is set in lsp.gopls below.
+      "formatter": [
+        { "code_action": "source.organizeImports" },
+        { "language_server": { "name": "gopls" } }
+      ]
+    }
+  },
+
+  // ── Language servers ──────────────────────────────────────────────────────
+  "lsp": {
+    "gopls": {
+      "initialization_options": {
+        // Stricter than gofmt. Per-project import grouping ("local":
+        // "<module>") is NOT set here — it belongs in each repo's .zed/.
+        "gofumpt": true,
+        "staticcheck": true,
+        "analyses": {
+          "unusedwrite": true,
+          "useany": true,
+          "nilness": true
+        },
+        // Content of Go inlay hints — computed by gopls, but currently HIDDEN by the
+        // value-only inlay_hints filter above (show_type/parameter_hints = false).
+        // Kept so flipping those back on immediately restores rich Go hints.
+        "hints": {
+          "assignVariableTypes": true,
+          "compositeLiteralFields": true,
+          "constantValues": true,
+          "functionTypeParameters": true,
+          "parameterNames": true,
+          "rangeVariableTypes": true
+        }
+      }
+    },
+    "mdx-analyzer": {
+      // mdx-analyzer disables its TypeScript plugin by default; turn it on so
+      // JSX / imports / component props are type-checked inside .mdx.
+      "initialization_options": {
+        "typescript": {
+          "enabled": true
+        }
+      }
+    }
+  }
+}

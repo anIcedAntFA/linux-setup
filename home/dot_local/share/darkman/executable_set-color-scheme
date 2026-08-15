@@ -19,3 +19,24 @@ light) scheme=prefer-light ;;
 esac
 
 gsettings set org.gnome.desktop.interface color-scheme "$scheme"
+
+# Zed has no native per-color-scheme font weight, so we swap it here: 200
+# (ExtraLight) in dark, 400 in light. Zed watches settings.json by INODE, so we
+# must edit it IN PLACE (truncate + rewrite the same inode). Plain `sed -i` does
+# an atomic rename to a NEW inode, which silently breaks Zed's watch — edits then
+# go unnoticed until Zed is restarted or its settings UI forces a re-read. sed
+# (not jq) because the file is JSONC (comments + trailing commas).
+# chezmoi's source keeps the 400 light baseline, so a `chezmoi apply` while in
+# dark mode reverts the weight to 400 until the next toggle — an accepted
+# trade-off. See docs/adr/0013-zed-per-theme-font-weight-via-darkman-hook.md.
+zed_settings="${XDG_CONFIG_HOME:-$HOME/.config}/zed/settings.json"
+case "$1" in
+dark) weight=200 ;;
+*) weight=400 ;;
+esac
+if [ -f "$zed_settings" ]; then
+	tmp=$(mktemp)
+	sed -E "s/(\"buffer_font_weight\": )[0-9]+(\.[0-9]+)?/\1$weight/" "$zed_settings" >"$tmp"
+	cat "$tmp" >"$zed_settings" # truncate-rewrite: keeps the inode Zed is watching
+	rm -f "$tmp"
+fi

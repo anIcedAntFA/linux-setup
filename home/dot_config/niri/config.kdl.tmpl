@@ -262,14 +262,14 @@ spawn-at-startup "xsettingsd"
 spawn-at-startup "zen-browser"
 {{- end }}
 {{- if eq $machine "work" }}
-// Work apps. `code` -> coding on HDMI-A-2, the primary output that's ready at
-// login, so it spawns directly. The browser + chat apps all land on DP-1, a
-// secondary monitor that enumerates *after* login: launching them now races
-// niri's workspace creation and they collapse onto DP-1's first slot.
+// Work apps. `zeditor` (Zed) -> coding on HDMI-A-2, the primary output that's
+// ready at login, so it spawns directly. The browser + chat apps all land on
+// DP-1, a secondary monitor that enumerates *after* login: launching them now
+// races niri's workspace creation and they collapse onto DP-1's first slot.
 // dot-niri-startup waits until DP-1's named workspaces exist, then launches them
 // in order -- zen first so it takes the browser's left column, chrome second.
 // See docs/niri-config.md.
-spawn-at-startup "code"
+spawn-at-startup "zeditor"
 spawn-at-startup "dot-niri-startup" "DP-1" "zen-browser" "google-chrome-stable" "slack" "teams-for-linux"
 {{- end }}
 {{- if eq $machine "home" }}
@@ -310,6 +310,14 @@ window-rule {
 window-rule {
 	match app-id="com.mitchellh.ghostty"
 	open-on-workspace "terminal"
+	open-maximized true
+}
+
+// Zed is the primary editor (see spawn-at-startup above); `code` is kept as a
+// fallback rule so a manually-opened VS Code still lands on "coding".
+window-rule {
+	match app-id="dev.zed.Zed"
+	open-on-workspace "coding"
 	open-maximized true
 }
 

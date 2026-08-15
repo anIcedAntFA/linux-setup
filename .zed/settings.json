@@ -1,0 +1,49 @@
+// Zed project settings for the dotfiles repo — the .vscode/settings.json
+// counterpart. Self-contained (each language declared explicitly) so anyone who
+// opens this repo formats it the way `just fmt` / CI does, regardless of their
+// global Zed config. This repo formats md/json/jsonc/yaml/toml with dprint;
+// global Zed uses Biome for JSON/JSONC, so these overrides are what make the
+// repo win. Shell uses tabs (shfmt -i 0) to match .editorconfig. KDL (niri) is
+// intentionally not formatted. Committed to git — NOT chezmoi-managed (it lives
+// at the repo root, outside home/, so it never reaches $HOME).
+{
+  "format_on_save": "on",
+  "languages": {
+    "JSON": {
+      // Global Zed attaches Biome to JSON; this repo uses dprint and never
+      // Biome, so drop the Biome LS here (keeps json-language-server via "...").
+      "language_servers": ["!biome", "..."],
+      "formatter": {
+        "external": { "command": "dprint", "arguments": ["fmt", "--stdin", "{buffer_path}"] }
+      }
+    },
+    "JSONC": {
+      "language_servers": ["!biome", "..."],
+      "formatter": {
+        "external": { "command": "dprint", "arguments": ["fmt", "--stdin", "{buffer_path}"] }
+      }
+    },
+    "Markdown": {
+      "formatter": {
+        "external": { "command": "dprint", "arguments": ["fmt", "--stdin", "{buffer_path}"] }
+      },
+      "remove_trailing_whitespace_on_save": false
+    },
+    "YAML": {
+      "formatter": {
+        "external": { "command": "dprint", "arguments": ["fmt", "--stdin", "{buffer_path}"] }
+      }
+    },
+    "TOML": {
+      "formatter": {
+        "external": { "command": "dprint", "arguments": ["fmt", "--stdin", "{buffer_path}"] }
+      }
+    },
+    "Shell Script": {
+      "formatter": { "external": { "command": "shfmt", "arguments": ["-i", "0", "-"] } }
+    },
+    "Fish": {
+      "formatter": { "external": { "command": "fish_indent", "arguments": [] } }
+    }
+  }
+}

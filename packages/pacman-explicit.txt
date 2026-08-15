@@ -81,6 +81,7 @@ github-cli
 gitleaks
 glances
 globalprotect-openconnect
+gnome-keyring
 gnupg
 go
 google-chrome
@@ -223,6 +224,7 @@ welcome
 wget
 which
 wireplumber
+witr
 wl-clipboard
 wlsunset
 wpa_supplicant
@@ -249,3 +251,4 @@ zellij
 zen-browser-bin
 zip
 zoxide
+zram-generator

@@ -65,6 +65,14 @@ link-previews = osc8
 shell-integration = fish
 shell-integration-features = no-cursor
 
+# --- Scrollback -------------------------------------------------------------
+# Cap per-surface scrollback so long agent/build output doesn't pin memory across
+# many panes. Honest note: this is a MINOR lever — Ghostty already defaults to
+# ~10 MB/surface, and the bulk of a large Ghostty RSS is the GPU renderer plus
+# surfaces restored by `window-save-state = always` below, not scrollback. Raise
+# this if you routinely scroll far back through logs.
+scrollback-limit = 5000000
+
 # --- Window -----------------------------------------------------------------
 gtk-titlebar = true
 gtk-tabs-location = bottom
