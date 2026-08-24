@@ -68,6 +68,13 @@ environment {
 	XDG_SESSION_TYPE "wayland"
 }
 
+// Noctalia v5 needs this to let its panels trigger notification actions and
+// window activation (it activates windows without a valid xdg-activation serial).
+// Recommended verbatim by the Noctalia niri integration page. See docs/adr/0017.
+debug {
+	honor-xdg-activation-with-invalid-serial
+}
+
 // ============================================================================
 // INPUT
 // ============================================================================
@@ -246,9 +253,13 @@ workspace "tools" {
 // ============================================================================
 // STARTUP (spawn-at-startup)
 // ============================================================================
-// The shell and terminal start everywhere.
-spawn-at-startup "qs" "-c" "noctalia-shell"
-spawn-at-startup "ghostty"
+// Noctalia (the shell) starts everywhere. v5 is a native binary (`noctalia`),
+// not the old Quickshell `qs -c noctalia-shell`. See docs/adr/0017.
+// ghostty is NOT spawned here: it used to race niri's workspace creation and land
+// off its pinned "terminal" output at login (spawned before that output's named
+// workspace existed). It's now gated per-machine below via dot-niri-startup, the
+// same wait-for-workspace helper the secondary-monitor apps use. See docs/niri-config.md.
+spawn-at-startup "noctalia"
 // Vietnamese input (fcitx5) and the GTK3/xsettings theme bridge -- both
 // machine-agnostic, so they start everywhere. See docs/fcitx5.md.
 spawn-at-startup "fcitx5"
@@ -259,6 +270,9 @@ spawn-at-startup "xsettingsd"
 // single-monitor `laptop` has "browser" on its lone (login-ready) output, so a
 // plain spawn is fine.
 {{- if eq $machine "laptop" }}
+// Single output, ready at login, and "terminal" is unpinned (empty ws table), so
+// ghostty can't miss its workspace -- a plain spawn is race-free here.
+spawn-at-startup "ghostty"
 spawn-at-startup "zen-browser"
 {{- end }}
 {{- if eq $machine "work" }}
@@ -270,13 +284,24 @@ spawn-at-startup "zen-browser"
 // in order -- zen first so it takes the browser's left column, chrome second.
 // See docs/niri-config.md.
 spawn-at-startup "zeditor"
+// ghostty -> "terminal" on HDMI-A-2: gate it on that output's named workspace so
+// it can't race onto the wrong monitor at login (zeditor spawns later, so it
+// already lands right on "coding").
+spawn-at-startup "dot-niri-startup" "HDMI-A-2" "ghostty"
 spawn-at-startup "dot-niri-startup" "DP-1" "zen-browser" "google-chrome-stable" "slack" "teams-for-linux"
 {{- end }}
 {{- if eq $machine "home" }}
-// Home mirrors work: browser + chat all land on DP-3, a secondary monitor that
-// enumerates *after* login. dot-niri-startup waits for DP-3's named workspaces,
-// then launches in order -- zen first (browser left column), chrome second, then
-// discord (routes to "chatting" regardless of order). See docs/niri-config.md.
+// Home mirrors work. `zeditor` (Zed) -> coding on HDMI-A-1, the primary output
+// that's ready at login, so it spawns directly (same as work). browser + chat all
+// land on DP-3, a secondary monitor that enumerates *after* login: dot-niri-startup
+// waits for DP-3's named workspaces, then launches in order -- zen first (browser
+// left column), chrome second, then discord (routes to "chatting" regardless of
+// order). See docs/niri-config.md.
+spawn-at-startup "zeditor"
+// ghostty -> "terminal" on HDMI-A-1: gate it on that output's named workspace so
+// it can't race onto the wrong monitor at login (zeditor spawns later, so it
+// already lands right on "coding").
+spawn-at-startup "dot-niri-startup" "HDMI-A-1" "ghostty"
 spawn-at-startup "dot-niri-startup" "DP-3" "zen-browser" "google-chrome-stable" "discord"
 {{- end }}
 
@@ -375,6 +400,15 @@ window-rule {
 	default-window-height { fixed 700; }
 }
 
+// Noctalia v5 settings window (Mod+A) opens floating at a fixed size, per the
+// upstream niri integration page. app-id is dev.noctalia.Noctalia. See adr/0017.
+window-rule {
+	match app-id="dev.noctalia.Noctalia"
+	open-floating true
+	default-column-width { fixed 1080; }
+	default-window-height { fixed 920; }
+}
+
 // --- Examples (disabled with a leading /-) ----------------------------------
 // Open Firefox's picture-in-picture player floating.
 /-window-rule {
@@ -404,13 +438,21 @@ binds {
 	Mod+Shift+Slash { show-hotkey-overlay; }
 
 	// --- Applications & launchers -------------------------------------------
-	Mod+D { spawn-sh "qs -c noctalia-shell ipc call launcher toggle"; }
+	Mod+D { spawn-sh "noctalia msg panel-toggle launcher"; }
 	// Clipboard history: Noctalia launcher in clipboard mode (cliphist backend). See docs/clipboard.md.
-	Mod+Shift+C hotkey-overlay-title="Clipboard history" { spawn-sh "qs -c noctalia-shell ipc call launcher clipboard"; }
+	Mod+Shift+C hotkey-overlay-title="Clipboard history" { spawn-sh "noctalia msg panel-toggle clipboard"; }
 	Mod+T hotkey-overlay-title="Open a Terminal: ghostty" { spawn "ghostty"; }
 	Mod+Shift+T hotkey-overlay-title="Todo: tuxedo" { spawn-sh "ghostty --class=com.tuxedo.todo -e tuxedo ~/todo.txt"; }
-	Mod+B hotkey-overlay-title="Open a Browser: waterfox" { spawn "waterfox"; }
-	Super+Alt+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock"; }
+	Mod+B hotkey-overlay-title="Open a Browser: zen" { spawn "zen-browser"; }
+	// Noctalia session (power) menu -- logout / reboot / shutdown / lock.
+	Mod+X hotkey-overlay-title="Session menu (Noctalia)" { spawn-sh "noctalia msg panel-toggle session"; }
+	// Noctalia settings panel.
+	Mod+A hotkey-overlay-title="Settings (Noctalia)" { spawn-sh "noctalia msg settings-toggle"; }
+	// Noctalia's own lock screen (ext-session-lock via the shell). Themed to match
+	// the bar; routed through the noctalia binary, so it depends on the shell being
+	// healthy -- see docs/adr/0016. Media/brightness binds below stay usable while
+	// locked via allow-when-locked.
+	Super+Alt+L hotkey-overlay-title="Lock the Screen (Noctalia)" { spawn-sh "noctalia msg session lock"; }
 
 	// --- Appearance ---------------------------------------------------------
 	// dot-theme-toggle flips darkman's light/dark mode. It's an override of the
@@ -428,8 +470,9 @@ binds {
 	// niri's own built-in screenshot actions (write straight to disk):
 	Ctrl+Print { screenshot-screen; }
 	Alt+Print { screenshot-window; }
-	// dot-screenrec drives wl-screenrec (GPU h264). Start records, then stop
-	// them explicitly (no terminal to Ctrl-C). See docs/screen-recording.md.
+	// dot-screenrec drives gpu-screen-recorder (NVENC h264; VA-API encode is
+	// unavailable on this NVIDIA box). Start records, then stop them explicitly
+	// (no terminal to Ctrl-C). See docs/screen-recording.md and docs/adr/0018.
 	Mod+Backslash		hotkey-overlay-title="Record (region)" { spawn "dot-screenrec" "region"; }
 	Mod+Shift+Backslash hotkey-overlay-title="Record (screen)" { spawn "dot-screenrec" "screen"; }
 	Mod+Ctrl+Backslash	hotkey-overlay-title="Record (stop & save)" { spawn "dot-screenrec" "stop"; }

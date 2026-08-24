@@ -34,14 +34,16 @@ interchangeable everywhere.
 
 ## Applications & launchers
 
-| Keybind       | Action / command          | What it does                  |
-| ------------- | ------------------------- | ----------------------------- |
-| `Mod+D`       | noctalia launcher toggle  | App launcher                  |
-| `Mod+Shift+C` | noctalia launcher (clip)  | Clipboard history panel       |
-| `Mod+T`       | `spawn ghostty`           | Open a terminal               |
-| `Mod+Shift+T` | `spawn` tuxedo in ghostty | Todo.txt TUI (opens floating) |
-| `Mod+B`       | `spawn waterfox`          | Open the browser              |
-| `Super+Alt+L` | `spawn swaylock`          | Lock the screen               |
+| Keybind       | Action / command                      | What it does               |
+| ------------- | ------------------------------------- | -------------------------- |
+| `Mod+D`       | `noctalia msg panel-toggle launcher`  | App launcher               |
+| `Mod+Shift+C` | `noctalia msg panel-toggle clipboard` | Clipboard history panel    |
+| `Mod+X`       | `noctalia msg panel-toggle session`   | Session/power menu         |
+| `Mod+A`       | `noctalia msg settings-toggle`        | Noctalia settings panel    |
+| `Mod+T`       | `spawn ghostty`                       | Open a terminal            |
+| `Mod+Shift+T` | `spawn` tuxedo in ghostty             | Todo.txt TUI (floating)    |
+| `Mod+B`       | `spawn zen-browser`                   | Open the browser (zen)     |
+| `Super+Alt+L` | `noctalia msg session lock`           | Lock the screen (Noctalia) |
 
 ## Screenshots & capture
 
