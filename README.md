@@ -67,7 +67,7 @@
 | **Multiplexer**     | [zellij](https://zellij.dev/) — sessions + layouts — [guide](docs/zellij.md)        |
 | **Login shell**     | [fish](https://fishshell.com/) — [guide](docs/fish.md)                              |
 | **Prompt**          | [starship](https://starship.rs/)                                                    |
-| **File manager**    | [yazi](https://github.com/sxyazi/yazi) — blazing-fast TUI                           |
+| **File manager**    | [superfile](https://superfile.dev/) — pretty TUI file manager                       |
 | **Dotfile manager** | [chezmoi](https://www.chezmoi.io/) — [why (ADR)](docs/adr/0001-adopt-chezmoi.md)    |
 | **Dev env**         | [mise](https://mise.jdx.dev/) — runtimes + tooling — [guide](docs/mise.md)          |
 | **Passwords**       | [gopass](https://www.gopass.pw/) — GPG + git — [guide](docs/gopass.md)              |

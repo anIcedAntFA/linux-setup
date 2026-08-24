@@ -67,6 +67,6 @@ images/      screenshots & wallpapers
 
 ## Gotchas
 
-- Don't format app-managed/vendored configs (e.g. `home/dot_config/noctalia/**`
-  and the vendored `yazi/flavors/**` theme are excluded in `dprint.json`).
+- Don't format app-managed configs (e.g. `home/dot_config/noctalia/**` and
+  `home/dot_config/zed/**` are excluded in `dprint.json`).
 - A hard-to-reverse decision with real trade-offs → record an ADR in `docs/adr/`.

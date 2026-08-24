@@ -194,6 +194,7 @@ smartmontools
 s-nail
 sof-firmware
 sudo
+superfile
 swaybg
 swaylock
 sysfsutils
@@ -245,7 +246,6 @@ xorg-xrandr
 xterm
 xwayland-satellite
 yay
-yazi
 zathura
 zellij
 zen-browser-bin
