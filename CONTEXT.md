@@ -76,7 +76,7 @@ _Avoid_: host, box, device (in config we say profile / the `machine` var).
 
 **Desktop shell** vs **Login shell**:
 Two unrelated things that both get called "shell". The **desktop shell** is
-[Noctalia](https://github.com/noctalia-dev/noctalia-shell) — the Wayland bar,
+[Noctalia](https://github.com/noctalia-dev/noctalia) — the Wayland bar,
 widgets, and launcher layer that sits on top of the niri compositor. The **login
 shell** is [fish](https://fishshell.com/) — the interactive command shell in the
 terminal. When a doc or the README says "shell" unqualified, prefer one of these
@@ -154,8 +154,12 @@ The system-wide dark/light preference — the `org.gnome.desktop.interface color
 gsetting (`prefer-dark` / `prefer-light`), served to apps by the gtk XDG portal.
 [darkman](https://darkman.whynothugo.nl/) is its single writer, driven by both a
 sunrise/sunset schedule and a manual keybind. It is a _mode_, not a colour palette;
-it _selects_ a theme per app but is not itself one.
-_Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette.
+it _selects_ a theme per app but is not itself one. The Noctalia **desktop shell**
+can also write this gsetting, but it is deliberately kept a _follower_
+(`colorSchemes.syncGsettings:false` + darkman's hook drives it) so darkman stays
+the sole writer — see [ADR 0019](docs/adr/0019-darkman-owns-mode-noctalia-follows.md).
+_Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette; assuming
+the desktop shell owns the mode (darkman does).
 
 **Theme** (per app):
 The concrete palette an app shows for a given color-scheme mode — e.g. VS Code's
@@ -164,12 +168,32 @@ Dracula ↔ Github Light, Zed's Dracula ↔ Catppuccin Latte, fish's Dracula Off
 mode to its own two themes.
 _Avoid_: "color-scheme" for a single app's palette; assuming one global theme.
 
+**Noctalia palette** vs **MineScheme** (the identity):
+A **Noctalia palette** is the set of Material-3 role colours (`mPrimary`,
+`mSurface`, … + a `terminal` block) Noctalia resolves for the current mode and
+feeds into every **Noctalia template**. The active palette comes from one of four
+_sources_ (`[theme].source` in Noctalia's config: `builtin` / `wallpaper` /
+`community` / `custom`). **MineScheme** is _our_ **custom** palette — the single
+file that encodes this setup's whole identity: **`light` = Catppuccin Latte,
+`dark` = Dracula**. One file carries both variants; in v5 it lives at
+`~/.config/noctalia/palettes/MineScheme.json` (the v4 `colorschemes/<name>/…`
+path is dead). Because Noctalia's own palette _is_ MineScheme, every Noctalia
+template (btop, qt, niri…) renders that identity automatically. (GTK is **not**
+templated — libadwaita + adw-gtk3 self-follow the mode live; see
+[ADR 0021](docs/adr/0021-tiered-app-theming-minescheme-identity.md).)
+_Avoid_: calling the Noctalia palette a **Theme** (a palette is Noctalia's
+source colours; a Theme is one app's rendered result); assuming the built-in
+Catppuccin palette is active (source is `custom`→MineScheme).
+
 **Noctalia template** (theme-export):
 Noctalia's own mechanism for pushing its generated colour palette into _other_
 apps: an input template file is filled with the current palette and written to a
-target app's config, optionally running a reload hook. Built-in ones ship in
-`settings.json` under `templates.activeTemplates` (niri, yazi, zathura, btop, gtk,
-qt); custom ones go in `home/dot_config/noctalia/user-templates.toml`. It is **not**
+target app's config, optionally running a reload hook. In **v5** the built-in
+catalog ships on disk (`/usr/share/noctalia/assets/templates/builtin.toml`) and is
+enabled per-id via `[theme.templates].builtin_ids` / `community_ids` in Noctalia's
+app-owned config (`~/.local/state/noctalia/settings.toml`) — **not** the dead v4
+`settings.json → templates.activeTemplates`; custom ones go in a hand-written
+`~/.config/noctalia/*.toml`. It is **not**
 per-machine config and **not** a chezmoi template — a wholly separate meaning of
 "template". So the word carries three senses here: chezmoi `.tmpl` (fills
 `{{ .var }}` at apply), a Noctalia template (palette → another app's theme), and the
