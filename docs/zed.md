@@ -301,3 +301,13 @@ correctly regardless of their own global config.
 - `home/dot_config/zed/**` is excluded from dprint (JSONC with trailing commas),
   so `just fmt` won't touch the global config. The repo-root `.zed/` is **not**
   excluded — it's kept dprint-clean (no trailing commas) like `.vscode/`.
+- **"Unsupported GPU / software emulated GPU (llvmpipe)" on launch?** Almost always
+  a **pending reboot after an `nvidia`+`linux` upgrade**, not a Zed problem. A
+  system upgrade replaces the userspace NVIDIA libs and kernel while the _old_
+  kernel module is still loaded — `nvidia-smi` then reports `Driver/library
+  version mismatch` and Vulkan enumerates zero GPUs (`vulkaninfo --summary` fails),
+  so Zed falls back to `llvmpipe`. **Fix: reboot** — you can't hot-reload it (the
+  running kernel's module dir is already gone). Do **not** set
+  `ZED_ALLOW_EMULATED_GPU=1`; that only hides the warning while keeping the slow
+  software renderer. Confirm the recovery after reboot with `nvidia-smi` (no
+  mismatch) and `vulkaninfo --summary` (lists the GeForce, not llvmpipe).
