@@ -1,0 +1,52 @@
+#!/bin/sh
+# darkman hook: per-monitor, per-mode wallpaper. Rendered by chezmoi per `.machine`.
+#
+# darkman runs every executable in ~/.local/share/darkman/ on each transition,
+# passing the new mode ("dark" | "light") as $1 -- so this runs alongside
+# set-color-scheme. It assigns a wallpaper to each physical monitor for the mode
+# via Noctalia IPC (`noctalia msg wallpaper-set <connector> <path>`, persisted to
+# Noctalia's app state). Noctalia does NOT auto-swap wallpaper per mode, so this
+# is the sole wallpaper driver.
+#
+# The image directory is baked in from chezmoi (the repo's images/wallpaper) --
+# no more reading it out of Noctalia's config (v5 moved config to TOML; the old
+# `jq .wallpaper.directory settings.json` read a dead v4 file). Connectors branch
+# per machine: home/work share DP-3 (landscape) + HDMI-A-1 (portrait); laptop has
+# the single internal panel eDP-1. See docs/theme-sync.md.
+set -eu
+
+# WAYLAND_DISPLAY guard: darkman.service may start before niri exports
+# WAYLAND_DISPLAY, and `noctalia msg` needs it to find its socket. Pull it from the
+# systemd user manager env when unset. See set-color-scheme for the full rationale.
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+	WAYLAND_DISPLAY=$(systemctl --user show-environment 2>/dev/null |
+		sed -n 's/^WAYLAND_DISPLAY=//p')
+	[ -n "${WAYLAND_DISPLAY}" ] && export WAYLAND_DISPLAY
+fi
+
+command -v noctalia >/dev/null 2>&1 || exit 0
+
+wpdir="{{ .chezmoi.homeDir }}/workspace/github.com/anIcedAntFA/dotfiles/images/wallpaper"
+[ -d "${wpdir}" ] || exit 0
+{{ if eq .machine "laptop" }}
+# laptop: single eDP-1, reuses the DP-3 landscape pair.
+case "$1" in
+dark) edp="${wpdir}/scarlet-tree-dark.png" ;;
+*) edp="${wpdir}/scarlet-tree.png" ;;
+esac
+[ -f "${edp}" ] && noctalia msg wallpaper-set eDP-1 "${edp}" >/dev/null 2>&1 || true
+{{- else }}
+# home + work: DP-3 (landscape) + HDMI-A-1 (portrait).
+case "$1" in
+dark)
+	dp3="${wpdir}/fantasy-lake2.png"
+	hdmi="${wpdir}/F42-01-night.jpg"
+	;;
+*)
+	dp3="${wpdir}/scarlet-tree.png"
+	hdmi="${wpdir}/F42-01-day.jpg"
+	;;
+esac
+[ -f "${dp3}" ] && noctalia msg wallpaper-set DP-3 "${dp3}" >/dev/null 2>&1 || true
+[ -f "${hdmi}" ] && noctalia msg wallpaper-set HDMI-A-1 "${hdmi}" >/dev/null 2>&1 || true
+{{- end }}

@@ -2,11 +2,22 @@
 # darkman transition hook. darkman runs it on BOTH the sunrise/sunset schedule and
 # a manual `darkman toggle`, passing the new mode ("dark" | "light") as $1.
 #
-# We mirror that mode into the gnome color-scheme gsetting. The gtk XDG portal
-# (Settings=gtk) then broadcasts it to every portal-aware app (VS Code
-# autoDetect, Ghostty, Chrome), and fish's auto-sync-theme reads the same key.
-# This is the single point that turns "darkman's mode" into "what apps see".
-# See docs/theme-sync.md.
+# darkman is the single owner of the dark/light MODE. This hook fans that mode out
+# to everything that can't read the gsetting on its own:
+#   - the gnome color-scheme gsetting (the gtk XDG portal then broadcasts it to
+#     VS Code autoDetect, Ghostty, Zed, Chrome, Zen, Discord, Teams...)
+#   - Noctalia (via IPC) so its templates re-render the MineScheme palette per mode
+#   - fish (running shells update live via universal vars)
+#   - the Papirus icon variant (Papirus-Dracula / Papirus-Latte)
+#   - the GTK theme name (adw-gtk3 / adw-gtk3-dark) + a named accent-color, so
+#     GTK/libadwaita apps self-follow the toggle LIVE (no Noctalia gtk template)
+#   - superfile's theme (Dracula / Catppuccin Latte)
+#   - Zed's per-mode buffer font weight
+# btop, qt and niri are themed by Noctalia templates now (not here). GTK is NOT a
+# Noctalia template anymore: its @define-color overrides were read only at app
+# launch, so a live toggle left open GTK apps inverted -- gtk3/gtk4 were dropped
+# from [theme.templates] and GTK now self-follows via adw-gtk3 + libadwaita. See
+# docs/theme-sync.md, docs/adr/0019 and docs/adr/0021.
 set -eu
 
 case "$1" in
@@ -18,16 +29,108 @@ light) scheme=prefer-light ;;
 	;;
 esac
 
+# WAYLAND_DISPLAY guard. darkman.service can start BEFORE niri exports
+# WAYLAND_DISPLAY into the systemd user environment, so darkman's own process env
+# lacks it. `noctalia msg` derives its socket name (noctalia-${WAYLAND_DISPLAY}.sock)
+# from that var -- without it, every scheduled toggle silently fails ("noctalia is
+# not running") and noctalia's mode never follows. The systemd user *manager* env
+# does get WAYLAND_DISPLAY once niri is up, so pull it from there when unset. This
+# makes the hook self-sufficient regardless of service start order.
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+	WAYLAND_DISPLAY=$(systemctl --user show-environment 2>/dev/null |
+		sed -n 's/^WAYLAND_DISPLAY=//p')
+	[ -n "${WAYLAND_DISPLAY}" ] && export WAYLAND_DISPLAY
+fi
+
+# Noctalia's bar/shell decides dark/light from its OWN fixed mode, not the gsetting,
+# so darkman drives it explicitly. Do this BEFORE the gsettings write: Noctalia
+# re-asserts its current mode whenever the gsetting changes to disagree with it, so
+# if we wrote the gsetting first it could bounce back before theme-mode-set lands.
+# Setting Noctalia's mode first makes the subsequent gsettings write agree with it.
+# `theme-mode-set dark|light` is a *fixed* mode (never `auto`), which also keeps
+# Noctalia's own sunrise/sunset scheduler inert -- darkman is the sole scheduler.
+# If Noctalia isn't running this msg fails harmlessly and the gsettings write below
+# is the canonical fallback. See docs/adr/0019 and docs/theme-sync.md.
+if command -v noctalia >/dev/null 2>&1; then
+	noctalia msg theme-mode-set "$1" >/dev/null 2>&1 || true
+fi
+
 gsettings set org.gnome.desktop.interface color-scheme "$scheme"
+
+# fish reads the color-scheme via `auto-sync-theme` only at shell startup, so
+# already-open shells wouldn't change on a toggle. Re-run it here: it flips the
+# fish theme by setting UNIVERSAL fish_color_* vars, which propagate live to every
+# running fish instance. The startup call in config.fish stays as a cold-start
+# fallback. See docs/theme-sync.md.
+if command -v fish >/dev/null 2>&1; then
+	fish -c 'auto-sync-theme' >/dev/null 2>&1 || true
+fi
+
+# Papirus icon variant follows the mode. dot-setup-papirus builds two user-local
+# thin themes that inherit the stock variants and override only the folder colours:
+# Papirus-Latte (Inherits Papirus-Light, Catppuccin-Latte-mauve folders) and
+# Papirus-Dracula (Inherits Papirus-Dark, Dracula folders). Flipping icon-theme
+# therefore switches BOTH the light/dark panel icons and the folder colour at once,
+# with no sudo and no `papirus-folders` run at toggle time. If those user themes
+# aren't built yet, gsettings still accepts the name and GTK falls back to the
+# inherited stock variant. See docs/theme-sync.md and docs/adr/0021.
+case "$1" in
+dark) icon_theme=Papirus-Dracula ;;
+*) icon_theme=Papirus-Latte ;;
+esac
+gsettings set org.gnome.desktop.interface icon-theme "$icon_theme"
+
+# GTK theme + accent follow the mode. Noctalia's gtk3/gtk4 template used to do
+# this; it was dropped (its @define-color overrides were read only at app launch,
+# so a live toggle left open GTK apps inverted). Now GTK self-follows:
+#   - gtk-theme  -> adw-gtk3 / adw-gtk3-dark. GTK4/libadwaita apps ignore this and
+#     follow the color-scheme gsetting on their own, but GTK3 apps need the theme
+#     NAME flipped to switch light/dark -- and they re-read it live on the change.
+#   - accent-color -> the nearest named accent to the MineScheme identity
+#     (Dracula purple / Latte sapphire). libadwaita reads this from the appearance
+#     portal and repaints live; adw-gtk3 honours it for GTK3.
+# Both are plain interface gsettings, broadcast by the gtk portal like the two
+# above, so every open GTK app repaints without a relaunch. See docs/theme-sync.md
+# and docs/adr/0021.
+case "$1" in
+dark)
+	gtk_theme=adw-gtk3-dark
+	accent=purple
+	;;
+*)
+	gtk_theme=adw-gtk3
+	accent=teal
+	;;
+esac
+gsettings set org.gnome.desktop.interface gtk-theme "$gtk_theme"
+gsettings set org.gnome.desktop.interface accent-color "$accent"
+
+# superfile has no native dark/light switching, so drive its single `theme` value
+# here: Catppuccin Latte (light) / Dracula (dark), matching the MineScheme identity.
+# Edit in place -- a running superfile reads its config only at launch, so this
+# takes effect on the next launch (accepted, same as other TUIs). chezmoi tracks
+# the light baseline. See docs/theme-sync.md and docs/adr/0021.
+case "$1" in
+dark) spf_theme=dracula ;;
+*) spf_theme=catppuccin-latte ;;
+esac
+spf_config="${XDG_CONFIG_HOME:-$HOME/.config}/superfile/config.toml"
+if [ -f "$spf_config" ]; then
+	tmp=$(mktemp)
+	sed -E "s/^([[:space:]]*theme[[:space:]]*=[[:space:]]*).*/\1\"$spf_theme\"/" \
+		"$spf_config" >"$tmp"
+	cat "$tmp" >"$spf_config" # truncate-rewrite; keep the file in place
+	rm -f "$tmp"
+fi
 
 # Zed has no native per-color-scheme font weight, so we swap it here: 200
 # (ExtraLight) in dark, 400 in light. Zed watches settings.json by INODE, so we
 # must edit it IN PLACE (truncate + rewrite the same inode). Plain `sed -i` does
-# an atomic rename to a NEW inode, which silently breaks Zed's watch — edits then
+# an atomic rename to a NEW inode, which silently breaks Zed's watch -- edits then
 # go unnoticed until Zed is restarted or its settings UI forces a re-read. sed
 # (not jq) because the file is JSONC (comments + trailing commas).
 # chezmoi's source keeps the 400 light baseline, so a `chezmoi apply` while in
-# dark mode reverts the weight to 400 until the next toggle — an accepted
+# dark mode reverts the weight to 400 until the next toggle -- an accepted
 # trade-off. See docs/adr/0013-zed-per-theme-font-weight-via-darkman-hook.md.
 zed_settings="${XDG_CONFIG_HOME:-$HOME/.config}/zed/settings.json"
 case "$1" in
