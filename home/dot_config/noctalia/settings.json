@@ -24,7 +24,9 @@
             "discord",
             "google-chrome",
             "thunar",
-            "nwg-look"
+            "nwg-look",
+            "bruno",
+            "teams-for-linux"
         ],
         "position": "center",
         "screenshotAnnotationTool": "",
@@ -160,7 +162,7 @@
                     "showMemoryAsPercent": false,
                     "showMemoryUsage": true,
                     "showNetworkStats": false,
-                    "showSwapUsage": false,
+                    "showSwapUsage": true,
                     "textColor": "none",
                     "useMonospaceFont": true,
                     "usePadding": false
@@ -263,7 +265,7 @@
         ]
     },
     "colorSchemes": {
-        "darkMode": true,
+        "darkMode": false,
         "generationMethod": "tonal-spot",
         "manualSunrise": "05:00",
         "manualSunset": "17:00",

@@ -46,6 +46,23 @@ cold pages over evicting file cache. `vm.page-cluster = 0` disables swap readahe
 zram; they would be poor settings for a disk swapfile — which is one more reason
 the two are documented together and applied as a pair.
 
+## Disabling zswap
+
+Arch's kernel ships `CONFIG_ZSWAP_DEFAULT_ON=y`, so **zswap** — a compressed page
+cache that sits _in front of_ a backing swap device — is live out of the box
+(`/sys/module/zswap/parameters/enabled` reads `Y`), though nothing here asked for it.
+Stacked on zram it is pure redundancy: both compress into RAM with zstd, so zswap
+merely intercepts pages headed for zram and, once its pool fills, does a pointless
+decompress-and-recompress on the writeback into zram. It also half-bypasses the size
+cap and algorithm this device is tuned for. The Arch Wiki recommends running one or
+the other, not both.
+
+zswap is builtin (not a module), so it cannot be turned off from `zram-generator.conf`
+or a modprobe file — the only persistent switch is the **kernel command line**. On
+this GRUB box, add `zswap.enabled=0` to `GRUB_CMDLINE_LINUX_DEFAULT` and regenerate
+`grub.cfg` (steps in [`docs/zram.md`](../zram.md)). This keeps the design honest: a
+single compressed-swap mechanism in RAM, which is the whole point of choosing zram.
+
 ## Consequences
 
 - New tracked system files: `etc/systemd/zram-generator.conf` and
@@ -53,6 +70,9 @@ the two are documented together and applied as a pair.
   `systemctl start systemd-zram-setup@zram0.service`). `zram-generator` must be
   installed and added to `packages/pacman-explicit.txt` (by hand — see the
   snapshot-drift policy in [packages](../../packages)).
+- zswap must be disabled on the kernel command line (`zswap.enabled=0`) so it does
+  not shadow zram — Arch enables it by default. A one-line GRUB change, reverted by
+  removing the token.
 - No hibernation: zram cannot hold a hibernation image. If suspend-to-disk is ever
   wanted, add a disk swapfile alongside — the two coexist.
 - Reverting is `systemctl stop systemd-zram-setup@zram0.service`, removing the two
