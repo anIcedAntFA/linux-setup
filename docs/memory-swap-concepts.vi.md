@@ -16,7 +16,7 @@
 - **Máy này trước đây có 0 swap.** Nghĩa là anon page không bao giờ đẩy đi được → chỉ cần một spike là OOM killer bắn → Slack/Teams biến mất giữa phiên làm việc.
 - **zram = một "ổ swap" nén, nằm ngay trong RAM.** Page lạnh được nén (~2–4× với zstd) thay vì bị giết. Đổi một cú OOM-kill cứng lấy một pha chậm-dần mềm mại.
 - **Cú lừa `zswap`:** Arch bật sẵn `zswap` — một cache nén đặt _trước ổ swap disk_. Xếp chồng lên zram là **nén hai lần**, vô nghĩa. Đã tắt bằng `zswap.enabled=0`.
-- **Payoff:** đệm chạy _vô hình_. Nhớ **hai ngưỡng, đừng gộp**: swap _chớm_ engage từ ~**24 GiB RAM-used** (kernel chủ động nén anon page lạnh — máy vẫn mượt, đây là _feature_ chứ không phải cảnh báo), còn ~**29–30 GiB** mới là mốc _khựng/OOM cũ_. Đo thật: đẩy tải đỉnh **28 GiB vẫn smooth**, swap giữ ~6 GiB nén còn **3.7×** — spike thành reclaim thay vì crash.
+- **Payoff:** đệm chạy _vô hình_. Nhớ **hai ngưỡng, đừng gộp**: swap _chớm_ engage từ ~**24 GiB RAM-used** (kernel chủ động nén anon page lạnh — máy vẫn mượt, đây là _feature_ chứ không phải cảnh báo), còn ~**29–30 GiB** mới là mốc _khựng/OOM cũ_. Đo thật: RAM giữ ~26 GiB trong khi swap leo tới ~12 GiB nén còn **3.8×** (**cứu ~8 GiB RAM**, 0 OOM) — spike thành reclaim thay vì crash.
 
 ---
 
@@ -508,31 +508,36 @@ của workload lúc đó, **không phải** zram "lúc chạy lúc không".
 
 ### Bằng chứng "after" đo trên chính máy này (một lát cắt lúc tải nặng)
 
-Không phải ví dụ dựng — chụp lúc đang cày (mono-repo dev + Docker + Teams + Zen
-nhiều tab), workload ~26–27 GiB RAM, swap ~6 GiB:
+Không phải ví dụ dựng — chụp lúc đang cày nặng (mono-repo dev + Docker + Teams +
+Bruno + file explorer + 5–6 project Zed + Zen nhiều tab), swap đã leo tới ~12 GiB:
 
 ```text
 $ zramctl
-NAME       ALGORITHM DISKSIZE DATA COMPR TOTAL STREAMS MOUNTPOINT
-/dev/zram0 zstd         15,6G 5,6G  1,5G  1,5G         [SWAP]
+NAME       ALGORITHM DISKSIZE  DATA COMPR TOTAL STREAMS MOUNTPOINT
+/dev/zram0 zstd         15,6G 11,1G  2,9G    3G         [SWAP]
 
 $ awk '{printf "pushed %.2f GiB -> costs %.2f GiB real RAM (%.1fx, saved %.2f GiB)\n", \
     $1/2^30,$3/2^30,$1/$3,($1-$3)/2^30}' /sys/block/zram0/mm_stat
-pushed 5.60 GiB -> costs 1.53 GiB real RAM (3.7x, saved 4.07 GiB)
+pushed 11.13 GiB -> costs 2.96 GiB real RAM (3.8x, saved 8.17 GiB)
 
 $ journalctl -k -b | rg -i 'oom-killer|Killed process'
 (rỗng — 0 process bị giết)
 ```
 
-Đọc ra: kernel đẩy **5.6 GiB** anon page lạnh nhưng chỉ tốn **1.5 GiB RAM thật**
-(**3.7×**, cứu ~**4 GiB**). Same-filled chỉ ~10% (đọc từ `mm_stat`) nên đây là
-nén dữ liệu _thật_, không dính bẫy `/dev/zero` (§7). `si`/`so` trong `vmstat`
-gần 0 = đang _giữ_ page lạnh chứ không thrash. Cặp before/after — dmesg OOM ở §5
-↔ lát cắt khỏe này — là bằng chứng mạnh nhất cho blog.
+Đọc ra: kernel đẩy **11.1 GiB** anon page lạnh nhưng chỉ tốn **~3 GiB RAM thật**
+(**3.8×**, **cứu ~8 GiB RAM**). Same-filled chỉ ~7% (đọc từ `mm_stat`) nên đây là
+nén dữ liệu _thật_, không dính bẫy `/dev/zero` (§7). `si`/`so` trong `vmstat` vẫn
+gần 0 _dù swap gần đầy_ = đang _giữ_ page lạnh chứ không thrash, CPU chỉ ~6%.
 
-> **[!NOTE]** `3.7×` là _một điểm đo_ tại một thời điểm, không phải cam kết cố
-> định; range lý thuyết vẫn ~2–4× (§7). Muốn số ấn tượng hơn, chụp lại đúng lúc
-> swap đầy hơn (đỉnh 28 GiB).
+Đáng chú ý: khi mở thêm loạt app trên, **swap leo 6 → 12 GiB nhưng RAM-used giữ
+nguyên ~26 GiB** — không phải RAM cạn (còn `available` ~5 GiB), mà là
+`swappiness = 180` ghìm working-set: cold anon bị đẩy vào zram _thay vì_ để
+RAM-used trèo sát tường. RAM phẳng + swap phình chính là đệm đang hút. Cặp
+before/after — dmesg OOM ở §5 ↔ lát cắt khỏe này — là bằng chứng mạnh nhất cho blog.
+
+> **[!NOTE]** `3.8×` là _một điểm đo_ tại một thời điểm, không phải cam kết cố
+> định; range lý thuyết vẫn ~2–4× (§7). Nếu chỉ cấp phát toàn zero (`/dev/zero`)
+> thì con số ảo lên vô cực — đây là workload thật nên nó phản ánh đúng.
 
 ---
 
@@ -557,8 +562,8 @@ Số thật, không phải ví dụ:
 - **Không hibernate** (đánh đổi đã chấp nhận; muốn thì thêm swapfile disk sau).
 
 > **[!NOTE] Before/after.** _Before_: dòng dmesg OOM (§5). _After_: lát cắt đo
-> thật ở §11 — `zramctl` cho **3.7×** (đẩy 5.6 GiB, tốn 1.5 GiB RAM), 0 OOM boot
-> này. Lệnh để tự chụp lại nằm ngay trên đó.
+> thật ở §11 — `zramctl` cho **3.8×** (đẩy 11 GiB, tốn ~3 GiB RAM, cứu ~8 GiB),
+> 0 OOM boot này. Lệnh để tự chụp lại nằm ngay trên đó.
 
 Đây chỉ là _lý thuyết + số_. Muốn **tự dựng lại** trên máy khác → theo runbook
 [`zram.md`](zram.md). Muốn hiểu **vì sao chọn zram** thay vì swapfile/capping →
