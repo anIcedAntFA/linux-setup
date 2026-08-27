@@ -16,7 +16,7 @@
 - **Máy này trước đây có 0 swap.** Nghĩa là anon page không bao giờ đẩy đi được → chỉ cần một spike là OOM killer bắn → Slack/Teams biến mất giữa phiên làm việc.
 - **zram = một "ổ swap" nén, nằm ngay trong RAM.** Page lạnh được nén (~2–4× với zstd) thay vì bị giết. Đổi một cú OOM-kill cứng lấy một pha chậm-dần mềm mại.
 - **Cú lừa `zswap`:** Arch bật sẵn `zswap` — một cache nén đặt _trước ổ swap disk_. Xếp chồng lên zram là **nén hai lần**, vô nghĩa. Đã tắt bằng `zswap.enabled=0`.
-- **Payoff:** máy 31 GiB này thôi đứng hình ở mốc 28–30 GiB; spike biến thành reclaim thay vì crash.
+- **Payoff:** đệm chạy _vô hình_. Nhớ **hai ngưỡng, đừng gộp**: swap _chớm_ engage từ ~**24 GiB RAM-used** (kernel chủ động nén anon page lạnh — máy vẫn mượt, đây là _feature_ chứ không phải cảnh báo), còn ~**29–30 GiB** mới là mốc _khựng/OOM cũ_. Đo thật: đẩy tải đỉnh **28 GiB vẫn smooth**, swap giữ ~6 GiB nén còn **3.7×** — spike thành reclaim thay vì crash.
 
 ---
 
@@ -442,6 +442,16 @@ free -h            # tổng quan RAM + swap (đọc kỹ ở dưới)
 swapon --show      # ổ swap nào đang sống, ưu tiên, đã dùng bao nhiêu
 zramctl            # riêng zram: thuật toán, DATA/COMPR/TOTAL
 btop               # trực quan real-time (hoặc: vmstat 1, watch -n1 free -h)
+
+# "Hiệu quả" gói trong 1 dòng — tỉ lệ nén thật + RAM cứu được:
+awk '{printf "pushed %.2f GiB -> costs %.2f GiB real RAM (%.1fx, saved %.2f GiB)\n", \
+  $1/2^30,$3/2^30,$1/$3,($1-$3)/2^30}' /sys/block/zram0/mm_stat
+
+vmstat 1           # si/so = swap-in/out KB/s: ~0 dù Swap USED cao = giữ page lạnh, KHÔNG thrash
+                   # (wa/iowait cao ≠ zram — zram nén bằng CPU đồng bộ, không sinh iowait; đó là disk/Docker)
+journalctl -k -b | rg -i 'oom-killer|Killed process'   # rỗng = payoff: 0 app bị giết
+
+ps -eo rss,comm --sort=-rss | awk 'NR>1&&n<10{printf "%6.2f GiB  %s\n",$1/1048576,$2;n++}'  # ai ngốn RAM
 ```
 
 ### Ép cho nó thực sự swap (an toàn, để thấy con số nhảy)
@@ -474,14 +484,55 @@ Swap:           15Gi          0B        15Gi
   cần. Nó nằm trong `available`. Đây là RAM "đang làm việc hộ", không phải RAM mất.
 - **`shared 3,9Gi`** = bộ nhớ chia sẻ / tmpfs (vd `/dev/shm`, một phần browser).
 - **`Swap USED 0B`** = zram _sống nhưng chưa spill_ → máy đang khỏe, chưa cần đệm.
-- **Vùng nguy thật** = khi **`available` tiến về 0 _và_ `Swap USED` leo** cùng
-  lúc. Đó chính là ngưỡng 28–30 GiB hay làm máy bạn khựng. Theo dõi hai con số
-  này là cách sớm nhất để biết sắp chạm trần.
+- **`Swap USED` leo _một mình_ KHÔNG phải nguy.** Với `swappiness = 180` +
+  `watermark_scale_factor = 125`, kernel dọn _sớm và chủ động_: swap chớm leo từ
+  ~**24 GiB RAM-used** trong khi `available` vẫn dư — đó là đệm chạy đúng, vô
+  hình, máy vẫn mượt. **Vùng nguy thật** = khi **`available` tiến về 0 _cùng
+  lúc_ `Swap USED` leo mạnh** — mốc ~**29–30 GiB** hay làm máy khựng. Hai ngưỡng
+  khác nhau; theo dõi _cặp_ `available` + `Swap USED` là cách sớm nhất để biết
+  sắp chạm trần.
 
-> **[!NOTE] Chèn evidence của bạn ("after"):** một `btop` screenshot lúc đang cày
-> nặng thật + `zramctl` cho thấy `COMPR/DATA` ~2–4× (không phải `/dev/zero`). Cặp
-> before/after (dmesg OOM ở §5 ↔ trace khỏe ở đây) là bằng chứng mạnh nhất cho
-> blog.
+### Vì sao swap leo "tùy cases"
+
+Không phải cứ vượt ~24 GiB là swap chắc chắn leo — còn tùy bạn vượt bằng _loại
+page nào_ (§3.3):
+
+- **Vượt bằng anon page** — TypeScript type-check, `run dev` nhiều app/package,
+  nhiều container Docker, Chrome DevTools mở hàng chục tab: heap phình, kernel
+  _bắt buộc_ nén anon lạnh vào zram → **swap leo thấy rõ**.
+- **Vượt bằng file cache** — đọc/ghi file lớn làm `buff/cache` phình: kernel chỉ
+  cần _vứt_ cache là xong → **swap đứng yên** dù RAM-used cao.
+
+Nên cùng một mốc RAM, lần thấy swap nhảy lần không — đó là do tỷ lệ anon/file
+của workload lúc đó, **không phải** zram "lúc chạy lúc không".
+
+### Bằng chứng "after" đo trên chính máy này (một lát cắt lúc tải nặng)
+
+Không phải ví dụ dựng — chụp lúc đang cày (mono-repo dev + Docker + Teams + Zen
+nhiều tab), workload ~26–27 GiB RAM, swap ~6 GiB:
+
+```text
+$ zramctl
+NAME       ALGORITHM DISKSIZE DATA COMPR TOTAL STREAMS MOUNTPOINT
+/dev/zram0 zstd         15,6G 5,6G  1,5G  1,5G         [SWAP]
+
+$ awk '{printf "pushed %.2f GiB -> costs %.2f GiB real RAM (%.1fx, saved %.2f GiB)\n", \
+    $1/2^30,$3/2^30,$1/$3,($1-$3)/2^30}' /sys/block/zram0/mm_stat
+pushed 5.60 GiB -> costs 1.53 GiB real RAM (3.7x, saved 4.07 GiB)
+
+$ journalctl -k -b | rg -i 'oom-killer|Killed process'
+(rỗng — 0 process bị giết)
+```
+
+Đọc ra: kernel đẩy **5.6 GiB** anon page lạnh nhưng chỉ tốn **1.5 GiB RAM thật**
+(**3.7×**, cứu ~**4 GiB**). Same-filled chỉ ~10% (đọc từ `mm_stat`) nên đây là
+nén dữ liệu _thật_, không dính bẫy `/dev/zero` (§7). `si`/`so` trong `vmstat`
+gần 0 = đang _giữ_ page lạnh chứ không thrash. Cặp before/after — dmesg OOM ở §5
+↔ lát cắt khỏe này — là bằng chứng mạnh nhất cho blog.
+
+> **[!NOTE]** `3.7×` là _một điểm đo_ tại một thời điểm, không phải cam kết cố
+> định; range lý thuyết vẫn ~2–4× (§7). Muốn số ấn tượng hơn, chụp lại đúng lúc
+> swap đầy hơn (đỉnh 28 GiB).
 
 ---
 
@@ -505,9 +556,9 @@ Số thật, không phải ví dụ:
   _duy nhất_.
 - **Không hibernate** (đánh đổi đã chấp nhận; muốn thì thêm swapfile disk sau).
 
-> **[!NOTE] Chỗ dán before/after của bạn.** _Before_: dòng dmesg OOM. _After_: một
-> `zramctl` lúc tải nặng cho thấy tỷ lệ nén thật. Đường dẫn/lệnh chi tiết để chụp
-> nằm ở §11.
+> **[!NOTE] Before/after.** _Before_: dòng dmesg OOM (§5). _After_: lát cắt đo
+> thật ở §11 — `zramctl` cho **3.7×** (đẩy 5.6 GiB, tốn 1.5 GiB RAM), 0 OOM boot
+> này. Lệnh để tự chụp lại nằm ngay trên đó.
 
 Đây chỉ là _lý thuyết + số_. Muốn **tự dựng lại** trên máy khác → theo runbook
 [`zram.md`](zram.md). Muốn hiểu **vì sao chọn zram** thay vì swapfile/capping →
