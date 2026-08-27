@@ -53,6 +53,16 @@ compression-algorithm = zstd
   size; the cap stops zram from ever eating the RAM it exists to protect.
 - `compression-algorithm = zstd` — best ratio-for-speed on a modern CPU.
 
+> [!NOTE]
+> **Bigger is not better.** `zram-size` is the _nominal_ (uncompressed) capacity; the
+> RAM zram actually spends is the _compressed_ data (`zramctl`'s `TOTAL`). That is not
+> free RAM — it is your RAM, compressed. Bumping the size to 24 GiB just lets the
+> kernel push 24 GiB of anon pages into ~8–12 GiB of real RAM, starving everything
+> else and trading a quick OOM-kill for prolonged thrash. `ram/2` is the sweet spot:
+> enough cushion to absorb a spike, not enough for zram to eat the RAM it protects.
+> On this 31 GiB box `ram/2` (≈15.6 GiB) is what actually applies — the 16 GiB cap
+> only bites on machines with ≥ 32 GiB.
+
 **[`etc/sysctl.d/99-zram.conf`](../etc/sysctl.d/99-zram.conf)** — VM tuning that
 only makes sense _because_ the swap is RAM-fast:
 
@@ -80,6 +90,38 @@ sudo systemctl start systemd-zram-setup@zram0.service   # create the device now
 No reboot needed — this brings zram up immediately, and the generator recreates
 it on every subsequent boot on its own.
 
+## Disable zswap (Arch enables it by default)
+
+Arch's kernel ships `CONFIG_ZSWAP_DEFAULT_ON=y`, so **zswap** is live from boot even
+though nothing here asked for it:
+
+```sh
+cat /sys/module/zswap/parameters/enabled   # -> Y
+```
+
+zswap is a compressed cache that fronts a _disk_ swap device; zram is a compressed
+swap device that already lives in RAM. Running both is redundant — zswap just
+intercepts pages headed for zram and, once its pool fills, decompresses and
+recompresses them on the writeback into zram (wasted CPU), while half-bypassing the
+size cap and algorithm zram is tuned for. [Arch recommends one or the other](https://wiki.archlinux.org/title/Zram), not both — here that means turning
+zswap off.
+
+zswap is builtin, not a module, so it can't be switched off from a config file or
+modprobe — the only persistent knob is the **kernel command line**. On GRUB:
+
+```sh
+# off now, no reboot (new swaps bypass zswap immediately):
+echo N | sudo tee /sys/module/zswap/parameters/enabled
+
+# persist: add zswap.enabled=0 to GRUB_CMDLINE_LINUX_DEFAULT, then regenerate
+sudoedit /etc/default/grub
+#   GRUB_CMDLINE_LINUX_DEFAULT="... zswap.enabled=0"
+sudo grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+After a reboot, `enabled` reads `N` and zram is the sole compressed swap. Pages
+already in zswap stay there until faulted back in — nothing needs clearing.
+
 ## Verify
 
 ```sh
@@ -92,6 +134,8 @@ zramctl
 # /dev/zram0 zstd         15,6G ... [SWAP]   <- zstd, in use as swap
 
 sysctl vm.swappiness                          # -> 180
+
+cat /sys/module/zswap/parameters/enabled      # -> N  (after the reboot below)
 ```
 
 `USED 0B` right after setup is **correct**, not a failure — with RAM to spare
@@ -164,5 +208,6 @@ the [packages guide](packages.md) on snapshot drift).
 
 - [zram-generator](https://github.com/systemd/zram-generator) ·
   [`zram-generator.conf(5)`](https://man.archlinux.org/man/zram-generator.conf.5)
-- [Arch Wiki — zram](https://wiki.archlinux.org/title/Zram)
+- [Arch Wiki — zram](https://wiki.archlinux.org/title/Zram) ·
+  [Arch Wiki — zswap](https://wiki.archlinux.org/title/Zswap)
 - Decision & alternatives: [ADR 0015](adr/0015-zram-swap-for-oom-resilience.md)
