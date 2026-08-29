@@ -255,11 +255,19 @@ workspace "tools" {
 // ============================================================================
 // Noctalia (the shell) starts everywhere. v5 is a native binary (`noctalia`),
 // not the old Quickshell `qs -c noctalia-shell`. See docs/adr/0017.
-// ghostty is NOT spawned here: it used to race niri's workspace creation and land
-// off its pinned "terminal" output at login (spawned before that output's named
-// workspace existed). It's now gated per-machine below via dot-niri-startup, the
-// same wait-for-workspace helper the secondary-monitor apps use. See docs/niri-config.md.
+// ghostty is NOT spawned here: it's per-machine below. On every box its "terminal"
+// workspace is on the login-ready primary output, so the OUTPUT never gates it -- but
+// a plain spawn silently exits 0 at boot with no window (a session-readiness race, not
+// the output race), so it's wrapped in dot-spawn-ghostty (short settle delay + boot
+// stderr/exit log). The late-enumerating secondary output's apps are still gated via
+// dot-niri-startup. See ADR 0022 + docs/niri-config.md.
 spawn-at-startup "noctalia"
+// Reconcile Noctalia's dark/light mode to darkman's once Noctalia's IPC is up.
+// darkman.service starts before Noctalia at boot, so darkman's hook can't reach
+// Noctalia in time; Noctalia then asserts its stale persisted mode and the desktop
+// boots in the wrong mode. This pushes darkman's schedule-correct mode back into
+// Noctalia after it's ready. See docs/theme-sync.md and docs/adr/0019.
+spawn-at-startup "dot-theme-reconcile"
 // Vietnamese input (fcitx5) and the GTK3/xsettings theme bridge -- both
 // machine-agnostic, so they start everywhere. See docs/fcitx5.md.
 spawn-at-startup "fcitx5"
@@ -271,8 +279,10 @@ spawn-at-startup "xsettingsd"
 // plain spawn is fine.
 {{- if eq $machine "laptop" }}
 // Single output, ready at login, and "terminal" is unpinned (empty ws table), so
-// ghostty can't miss its workspace -- a plain spawn is race-free here.
-spawn-at-startup "ghostty"
+// ghostty can't miss its workspace. It's still wrapped in dot-spawn-ghostty for the
+// boot silent-exit race (a short settle delay + stderr/exit log) -- orthogonal to
+// routing, harmless on the lone panel. See ADR 0022.
+spawn-at-startup "dot-spawn-ghostty"
 spawn-at-startup "zen-browser"
 {{- end }}
 {{- if eq $machine "work" }}
@@ -284,10 +294,13 @@ spawn-at-startup "zen-browser"
 // in order -- zen first so it takes the browser's left column, chrome second.
 // See docs/niri-config.md.
 spawn-at-startup "zeditor"
-// ghostty -> "terminal" on HDMI-A-2: gate it on that output's named workspace so
-// it can't race onto the wrong monitor at login (zeditor spawns later, so it
-// already lands right on "coding").
-spawn-at-startup "dot-niri-startup" "HDMI-A-2" "ghostty"
+// ghostty -> "terminal" on HDMI-A-2, the login-ready primary. It plain-spawned here
+// (like zeditor, whose slow cold start hides the race), but a real light->dark reboot
+// proved the plain spawn silently exits 0 at boot with no window -- NOT the output
+// race (the output is up), not single-instance, not a crash. dot-spawn-ghostty adds a
+// short settle delay + captures boot stderr/exit to ~/.local/state/ghostty-boot.log.
+// See ADR 0022 + docs/niri-config.md.
+spawn-at-startup "dot-spawn-ghostty"
 spawn-at-startup "dot-niri-startup" "DP-1" "zen-browser" "google-chrome-stable" "slack" "teams-for-linux"
 {{- end }}
 {{- if eq $machine "home" }}
@@ -298,10 +311,13 @@ spawn-at-startup "dot-niri-startup" "DP-1" "zen-browser" "google-chrome-stable" 
 // left column), chrome second, then discord (routes to "chatting" regardless of
 // order). See docs/niri-config.md.
 spawn-at-startup "zeditor"
-// ghostty -> "terminal" on HDMI-A-1: gate it on that output's named workspace so
-// it can't race onto the wrong monitor at login (zeditor spawns later, so it
-// already lands right on "coding").
-spawn-at-startup "dot-niri-startup" "HDMI-A-1" "ghostty"
+// ghostty -> "terminal" on HDMI-A-1, the login-ready primary. It plain-spawned here
+// (like zeditor, whose slow cold start hides the race), but a real light->dark reboot
+// proved the plain spawn silently exits 0 at boot with no window -- NOT the output
+// race (the output is up), not single-instance, not a crash. dot-spawn-ghostty adds a
+// short settle delay + captures boot stderr/exit to ~/.local/state/ghostty-boot.log.
+// See ADR 0022 + docs/niri-config.md.
+spawn-at-startup "dot-spawn-ghostty"
 spawn-at-startup "dot-niri-startup" "DP-3" "zen-browser" "google-chrome-stable" "discord"
 {{- end }}
 

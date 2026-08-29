@@ -96,6 +96,22 @@ _Avoid_: bare "session" (say which); conflating any of these with a **niri
 workspace**, a **Multiplexer session** (zellij), or the Secret Service's own notion
 of a keyring "session".
 
+**Login-ready output** vs **Late-enumerating output**:
+The two kinds of monitor from the point of view of **startup** (`spawn-at-startup`).
+A **login-ready output** has a logical position the instant niri comes up — the
+**primary** on each box (`work`/`home`: `HDMI-A-2`/`HDMI-A-1`; `laptop`: its lone
+panel). A **late-enumerating output** gets its logical position only _after_ login —
+the **secondary** monitor (`work`: `DP-1`, `home`: `DP-3`). The distinction decides
+_how_ an auto-started app is launched, and it's the app's **pinned output** that
+classifies it, not the app: an app whose workspace lives on a login-ready output
+**plain-spawns** (`spawn-at-startup "app"`; the window-rule's `open-on-workspace`
+routes it), while one pinned to a late-enumerating output goes through
+**`dot-niri-startup`**, which waits for that output to be positioned before
+launching. See [ADR 0022](docs/adr/0022-login-ready-vs-late-enumerating-output-startup.md).
+_Avoid_: "primary/secondary" as if it were about monitor _importance_ (here it's
+purely login-time readiness); gating an app on a login-ready output (the poll is a
+no-op there — a plain spawn is correct and keeps stderr on the journal).
+
 ## Terminal workspace layers
 
 Three layers all get loosely called "workspace/tab/window"; keep them distinct.
