@@ -161,6 +161,24 @@ the sole writer — see [ADR 0019](docs/adr/0019-darkman-owns-mode-noctalia-foll
 _Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette; assuming
 the desktop shell owns the mode (darkman does).
 
+**Wallpaper** (the other mode channel):
+The per-monitor background image, one per mode — also darkman-driven (its
+`set-wallpaper` hook maps each connector to a dark/light image on every transition).
+Critically, unlike the **Color-scheme**, it has **no compositor-independent
+fallback**: darkman writes the color-scheme gsetting directly (the gtk portal
+broadcasts it) even with the desktop shell down, but the wallpaper is set **only**
+through Noctalia IPC (`noctalia msg wallpaper-set`). So a boot where darkman's hooks
+fire before Noctalia's IPC is up breaks the wallpaper _unconditionally_ (the IPC call
+fails silently, Noctalia asserts its stale persisted image) while the mode self-heals
+— the classic symptom is **dark mode under a light wallpaper**. Because it can't
+self-heal, the wallpaper is re-driven by the same login **reconcile**
+([`dot-theme-reconcile`](home/dot_local/bin/executable_dot-theme-reconcile)) that
+fixes the mode, once Noctalia can receive it. See
+[ADR 0019](docs/adr/0019-darkman-owns-mode-noctalia-follows.md), docs/theme-sync.md.
+_Avoid_: assuming the wallpaper follows the mode "for free" (it has no gsetting
+fallback); treating a stale boot wallpaper as a Noctalia bug (it's the IPC-only
+boot race).
+
 **Theme** (per app):
 The concrete palette an app shows for a given color-scheme mode — e.g. VS Code's
 Dracula ↔ Github Light, Zed's Dracula ↔ Catppuccin Latte, fish's Dracula Official

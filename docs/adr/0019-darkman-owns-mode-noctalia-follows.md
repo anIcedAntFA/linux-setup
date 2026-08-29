@@ -76,5 +76,44 @@ and Zed font weight all switch together and hold at t+4s).
 - **btop left the Noctalia template set** — it is themed by the darkman hook now
   (Catppuccin Latte / Dracula), so its Noctalia `activeTemplates` entry is
   disabled. This is intentional de-integration, not drift.
+- **`syncGsettings` is gone in `5.0.0_beta.10`.** The beta coupling above came
+  true: the beta.9 `colorSchemes.syncGsettings` flag did not survive the migration
+  to the `settings.toml` config — there is no such key now. In its place, verified
+  on beta.10: a Noctalia held at a **fixed** `[theme] mode` (never `auto`) does
+  **not** continuously re-assert the gsetting — an external `prefer-*` write holds.
+  So the fixed-mode choice above is what keeps darkman the owner now; the flag was
+  only ever needed to suppress the extra re-assertion beta.9 did. (`auto` is
+  different: it runs Noctalia's own scheduler and _does_ rewrite the gsetting — the
+  dual-writer fight — so it stays off.)
+- **Boot-time reconcile — `dot-theme-reconcile`.** The `WAYLAND_DISPLAY` guard
+  fixes _scheduled_ transitions (Noctalia already running), but not **boot**:
+  `darkman.service` starts before Noctalia's IPC, so darkman's hook can't reach it,
+  and Noctalia then asserts its persisted `[theme] mode` **once at startup**,
+  writing the color-scheme gsetting to that (possibly stale) value. Shut down in
+  light, boot after sunset, and the desktop comes up light; because darkman's
+  _internal_ mode is already dark, the first `Mod+Shift+D` is a visual no-op and it
+  takes two presses to flip. Fix: niri spawns
+  [`dot-theme-reconcile`](../../home/dot_local/bin/executable_dot-theme-reconcile)
+  right after Noctalia — it waits for Noctalia's socket, then pushes
+  `noctalia msg theme-mode-set "$(darkman get)"` until the gsetting agrees
+  (bounded ~8 s). Since fixed-mode Noctalia doesn't re-assert, the correction
+  holds. darkman stays the sole scheduler; this only re-delivers its truth once
+  Noctalia can receive it.
+- **The reconcile also re-drives the wallpaper — because the wallpaper can't
+  self-heal.** A real light→dark reboot (shut down light, boot after sunset) proved
+  the mode reconcile above only covered _one_ of darkman's two channels. The mode has
+  a compositor-independent fallback: `set-color-scheme` writes the gsetting directly,
+  so even with Noctalia down at boot the schedule-correct mode lands, and the loop
+  above merely re-pushes it into the shell. The **wallpaper has no such fallback** —
+  `set-wallpaper` drives it _only_ through `noctalia msg wallpaper-set`, which fails
+  silently when IPC isn't up yet; darkman then won't re-fire the hook (no transition),
+  and Noctalia asserts its stale persisted image. Result: **dark mode under a light
+  wallpaper**. A hook-level socket-wait wouldn't fix it — Noctalia's one-shot startup
+  assertion lands _after_ the early hook and would clobber it — which is exactly why
+  the reconcile is the right layer: it runs _after_ Noctalia is up. So
+  `dot-theme-reconcile` now, once the mode loop has converged (proof the startup
+  assertion is done), re-runs `set-wallpaper "$(darkman get)"` once; a single
+  post-startup `wallpaper-set` sticks (verified), so no wallpaper poll is needed. See
+  the **Wallpaper** term in [CONTEXT.md](../../CONTEXT.md) and docs/theme-sync.md.
 - The lock-screen shell-dependence from
   [ADR 0016](./0016-noctalia-ipc-lock-screen.md) is unaffected.

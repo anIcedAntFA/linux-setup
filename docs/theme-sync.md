@@ -92,6 +92,22 @@ mode, and we deliberately didn't build one.
   `jq`-ing the dead v4 `settings.json`). Adding a hook needs a `darkman` restart.
 - [`home/dot_local/bin/executable_dot-theme-toggle`](../home/dot_local/bin/executable_dot-theme-toggle)
   — the `Mod+Shift+D` target: `darkman toggle` + a one-shot `notify-send`.
+- [`home/dot_local/bin/executable_dot-theme-reconcile`](../home/dot_local/bin/executable_dot-theme-reconcile)
+  — a niri `spawn-at-startup` that fixes the **boot** ordering race. `darkman.service`
+  starts before Noctalia's IPC, so darkman's hook can't reach Noctalia at boot;
+  Noctalia then asserts its persisted `[theme] mode` **once at startup** and writes
+  the color-scheme gsetting to that (stale) value — the desktop boots in the wrong
+  mode, and since darkman's _internal_ mode is already right, the first `Mod+Shift+D`
+  is a no-op (two presses to flip). This waits for Noctalia's socket, then pushes
+  `noctalia msg theme-mode-set "$(darkman get)"` until the gsetting agrees. Fixed-mode
+  Noctalia doesn't re-assert, so the correction holds. **It then re-drives the
+  wallpaper too**: the wallpaper is set _only_ via Noctalia IPC (no gsetting fallback
+  like the mode has), so the same boot race leaves it on Noctalia's stale image —
+  **dark mode under a light wallpaper**. After the mode loop converges (proof
+  Noctalia's startup assertion is done) the reconcile re-runs `set-wallpaper
+  "$(darkman get)"` once; a single post-startup `wallpaper-set` sticks. See
+  [ADR 0019](adr/0019-darkman-owns-mode-noctalia-follows.md) and the **Wallpaper** term
+  in [CONTEXT.md](../CONTEXT.md).
 - `window.autoDetectColorScheme` + `workbench.preferred{Light,Dark}ColorTheme` in
   [VS Code settings](../home/dot_config/Code/User/settings.json) — native follow,
   no script.
@@ -239,12 +255,20 @@ mode. `theme-mode-get` is the value that used to lag:
 ```sh
 gsettings get org.gnome.desktop.interface color-scheme        # prefer-dark | prefer-light
 noctalia msg theme-mode-get                                   # dark | light  (MUST agree ↑)
+noctalia msg wallpaper-get HDMI-A-1                           # F42-01-night | F42-01-day (MUST match mode)
 gsettings get org.gnome.desktop.interface icon-theme          # Papirus-Dracula | Papirus-Latte
 rg -oP '(?<=@define-color accent_bg_color )\S+' ~/.config/gtk-4.0/noctalia.css  # #bd93f9 | #209fb5
+cat ~/.local/state/theme-reconcile.log                        # per-boot trace: mode + wallpaper re-drive
 ```
 
 If `theme-mode-get` disagrees with the gsetting after boot, the guard didn't fire —
-compare `set-color-scheme` against `systemctl --user show-environment`.
+compare `set-color-scheme` against `systemctl --user show-environment`. Note the
+boot case (shut down in one mode, boot into the other) is handled by
+`dot-theme-reconcile`, not the guard; if it's still wrong at login, check that niri
+spawns it after Noctalia and that Noctalia's socket appeared within its ~30 s wait.
+The **wallpaper** is the more fragile channel — it has no gsetting fallback, so a
+stale boot wallpaper (dark mode, light image) means the reconcile's wallpaper re-drive
+didn't land; check the `wallpaper:` line in `theme-reconcile.log`.
 
 ```sh
 noctalia msg color-scheme-get                                 # Noctalia's palette source
