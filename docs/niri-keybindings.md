@@ -43,6 +43,9 @@ interchangeable everywhere.
 | `Mod+T`       | `spawn ghostty`                       | Open a terminal            |
 | `Mod+Shift+T` | `spawn` tuxedo in ghostty             | Todo.txt TUI (floating)    |
 | `Mod+B`       | `spawn zen-browser`                   | Open the browser (zen)     |
+| `Mod+G`       | `spawn google-chrome-stable`          | Open Google Chrome         |
+| `Mod+E`       | `spawn nautilus`                      | Open the file manager      |
+| `Mod+Shift+Z` | `spawn zeditor`                       | Open the Zed editor        |
 | `Super+Alt+L` | `noctalia msg session lock`           | Lock the screen (Noctalia) |
 
 ## Screenshots & capture

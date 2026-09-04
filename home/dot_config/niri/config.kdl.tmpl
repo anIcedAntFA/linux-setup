@@ -460,6 +460,11 @@ binds {
 	Mod+T hotkey-overlay-title="Open a Terminal: ghostty" { spawn "ghostty"; }
 	Mod+Shift+T hotkey-overlay-title="Todo: tuxedo" { spawn-sh "ghostty --class=com.tuxedo.todo -e tuxedo ~/todo.txt"; }
 	Mod+B hotkey-overlay-title="Open a Browser: zen" { spawn "zen-browser"; }
+	// Mod+G (not Mod+Shift+B) for Chrome; Mod+Shift+Z (not Mod+Z) for Zed --
+	// Mod+Z is fcitx5's input-method TriggerKey (Super+Z), see docs/fcitx5.md.
+	Mod+G hotkey-overlay-title="Open a Browser: google-chrome" { spawn "google-chrome-stable"; }
+	Mod+E hotkey-overlay-title="Open a File Manager: nautilus" { spawn "nautilus"; }
+	Mod+Shift+Z hotkey-overlay-title="Open an Editor: zed" { spawn "zeditor"; }
 	// Noctalia session (power) menu -- logout / reboot / shutdown / lock.
 	Mod+X hotkey-overlay-title="Session menu (Noctalia)" { spawn-sh "noctalia msg panel-toggle session"; }
 	// Noctalia settings panel.
