@@ -2,5 +2,11 @@
 # (The repo README, docs/, packages/, etc. live above the source root — set by
 # .chezmoiroot -> "home" — so they never reach $HOME and need no entry here.)
 #
-# Nothing is ignored yet. Add entries such as:
+# Add entries such as:
 #   .config/fish/fish_variables   # if its runtime churn becomes noisy
+
+# Noctalia v5 config is tracked on every profile: 00-base.toml (machine-agnostic)
+# + palettes/ ship everywhere, and 10-machine.toml.tmpl branches per `.machine`
+# (monitors, wallpaper, DPI). The per-output wallpaper darkman hook is likewise a
+# `.tmpl` that branches per machine. Nothing here is home-only any more.
+# See docs/adr/0020 (supersedes 0012).

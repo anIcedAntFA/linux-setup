@@ -80,7 +80,7 @@ Or let chezmoi do it on `chezmoi apply` — answer **yes** to the
 | [`curlie`](https://github.com/rs/curlie)                                                           | `curl` with httpie ergonomics.                            |
 | [`hyperfine`](https://github.com/sharkdp/hyperfine)                                                | Command benchmarking.                                     |
 | [`tldr`](https://tldr.sh/)                                                                         | Simplified man pages.                                     |
-| [`yazi`](https://github.com/sxyazi/yazi)                                                           | Terminal file manager.                                    |
+| [`superfile`](https://superfile.dev/)                                                              | Terminal file manager.                                    |
 | [`tuxedo`](https://github.com/webstonehq/tuxedo)                                                   | todo.txt task TUI — see [tuxedo.md](tuxedo.md).           |
 | [`dos2unix`](https://waterlan.home.xs4all.nl/dos2unix.html)                                        | Line-ending conversion.                                   |
 | [`plocate`](https://plocate.sesse.net/)                                                            | Fast `locate`.                                            |

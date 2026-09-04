@@ -1,0 +1,14 @@
+# zathura base config.
+#
+# Per-mode colours come from Noctalia's zathura template, which regenerates
+# ~/.config/zathura/noctaliarc on each theme change (MineScheme palette: Dracula
+# in dark, Catppuccin Latte in light). This file just includes it and sets a few
+# base options. noctaliarc is app-generated -- not tracked. On a fresh machine it
+# may not exist until Noctalia renders it once; zathura treats the missing include
+# as a non-fatal warning. See docs/theme-sync.md.
+include noctaliarc
+
+set selection-clipboard clipboard
+set adjust-open width
+set statusbar-home-tilde true
+set window-title-basename true

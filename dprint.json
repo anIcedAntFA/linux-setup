@@ -12,7 +12,6 @@
     "home/dot_config/noctalia/**",
     "home/dot_config/zed/**",
     "home/dot_config/rtk/**",
-    "home/dot_config/yazi/flavors/**",
     "images/**",
     ".agents/**",
     ".gemini/**",

@@ -1,91 +1,84 @@
-# Screen recording — wl-screenrec
+# Screen recording — gpu-screen-recorder
 
 Video counterpart to [screenshot.md](screenshot.md). Where screenshots are a
 one-shot grab, a recording is a **long-running process**: you start it, it runs,
 you stop it later — so the wiring is a little different.
 
-## Why wl-screenrec
+## Why gpu-screen-recorder
 
-[wl-screenrec](https://github.com/russelltg/wl-screenrec) is a **GPU-accelerated**
-recorder for wlroots-style compositors (niri included). It encodes with VA-API on
-the GPU, so it stays cheap on CPU and battery even at high resolution — the reason
-to prefer it over the CPU-bound `wf-recorder`. It captures a **region** (via
-`slurp`, exactly like the screenshot flow) or a **single output**, with optional
-audio.
+[gpu-screen-recorder](https://git.dec05eba.com/gpu-screen-recorder/) captures the
+screen via **DRM/KMS** and encodes on the GPU — **NVENC** on NVIDIA, **VA-API** on
+Intel/AMD — so it stays cheap on CPU and battery even at high resolution. It
+captures a **region** (via `slurp`, exactly like the screenshot flow) or a **single
+output**, with optional audio.
 
-Two things it deliberately does _not_ do, which shape the script below:
+It replaced [wl-screenrec](https://github.com/russelltg/wl-screenrec), which
+**cannot record on the NVIDIA home box at all**: the only VA-API driver for NVIDIA
+(`nvidia-vaapi-driver`) is decode-only, and wl-screenrec imports the capture
+buffers through a VA-API frame context regardless of encoder, so it dies the
+instant it starts (`Failed to create vaapi frame context … Unsupported format:
+bgr0`). gpu-screen-recorder's KMS capture + NVENC sidesteps VA-API entirely. Since
+it is cross-vendor, the whole repo uses the one tool rather than templating the
+script per GPU. Full reasoning in
+[ADR 0018](adr/0018-gpu-screen-recorder-for-nvidia.md).
 
-- **No window capture** — it records a rectangle or an output, nothing that
-  follows a window.
-- **One output at a time** — it can't span multiple monitors in a single file.
+Two things it deliberately does _not_ do here, which shape the script below:
+
+- **No window capture** — `dot-screenrec` records a rectangle or an output,
+  nothing that follows a window.
+- **One output at a time** — a single recording targets one monitor (or one
+  region), not a span across monitors.
 
 ## Install
 
 ```sh
-yay -S --needed wl-screenrec-git slurp jq libnotify
+sudo pacman -S --needed gpu-screen-recorder slurp jq libnotify
 ```
 
-- `wl-screenrec-git` — the recorder (AUR; tracks upstream `main`).
+- `gpu-screen-recorder` — the recorder. It ships a setuid `gsr-kms-server` helper
+  so KMS capture works without running the whole thing as root.
 - `slurp` — draw the region rectangle (shared with the screenshot pipeline).
 - `jq` — read the focused output name from `niri msg --json`.
 - `libnotify` — `notify-send`, the only signal a recording is live.
 
-Hardware encoding needs a working VA-API driver for your GPU — see the next
-section, which is where the one real setup snag lives.
+> [!NOTE]
+> **No screencast portal needed for recording.** Monitor capture goes straight
+> through DRM/KMS, so `dot-screenrec` works even while the screencast _portal_ is
+> misconfigured. Screen **sharing** (a browser/app screencast) is the separate
+> concern that needs `xdg-desktop-portal-gnome` — see
+> [ADR 0017](adr/0017-migrate-noctalia-v4-to-v5.md).
 
-## VA-API / hardware encoding
+## GPU / hardware encoding
 
-wl-screenrec encodes h264 **on the GPU** via VA-API, so it needs a VA-API driver
-that supports your GPU. On Intel there are **two** drivers, and picking the wrong
-one fails hard:
+gpu-screen-recorder picks the encoder from the GPU automatically:
 
-- **`intel-media-driver`** — the `iHD` driver, for **Gen8+** (Broadwell and newer,
-  including this box's Alder Lake **UHD 770**). The modern one.
-- **`libva-intel-driver`** — the legacy `i965` driver, only up to ~Gen9. On a
-  Gen12 GPU it can't initialise at all.
+- **NVIDIA** (home box, RTX 3060) → **NVENC** (`h264_nvenc`). No VA-API involved;
+  this is the path that made wl-screenrec unusable and gpu-screen-recorder the fix.
+- **Intel / AMD** (work / laptop) → **VA-API** on the GPU. The same script and
+  keybinds; only the encoder differs. (Not yet re-verified on those boxes — they
+  previously ran wl-screenrec; confirm with `gpu-screen-recorder -w <connector> -o
+  /tmp/t.mp4` producing a non-empty file.)
 
-If only `libva-intel-driver` is present, VA-API tries `i965` and dies — the
-recorder even tells you it's not its own bug:
-
-```text
-[VAAPI] libva: /usr/lib/dri/i965_drv_video.so init failed
-[VAAPI] Failed to initialise VAAPI connection: -1 (unknown libva error).
-[ERROR] failed to create encoder(s): Failed to load vaapi device: Input/output error.
-thread 'main' panicked at src/main.rs: enc left in intermediate state
-```
-
-Fix (per [wl-screenrec#30](https://github.com/russelltg/wl-screenrec/issues/30)) —
-install the iHD driver and `vainfo` to check it:
+Quick check that capture works at all:
 
 ```sh
-yay -S --needed intel-media-driver libva-utils
-vainfo   # from libva-utils
+gpu-screen-recorder --list-monitors        # connector names + resolutions
+gpu-screen-recorder -w DP-3 -o /tmp/t.mp4  # Ctrl-C after a second; /tmp/t.mp4 should be non-empty
 ```
-
-A healthy `vainfo` names the **iHD** driver and lists `VAProfileH264*` with
-`VAEntrypointEncSlice` — the hardware h264 _encode_ path wl-screenrec needs:
-
-```text
-vainfo: Driver version: Intel iHD driver for Intel(R) Gen Graphics ...
-      VAProfileH264High    : VAEntrypointEncSlice
-```
-
-No working VA-API (or a non-Intel GPU without its own driver)? `wl-screenrec
---no-hw` falls back to a CPU encoder — heavier on battery, but it records.
 
 ## The `dot-screenrec` script
 
 [`home/dot_local/bin/executable_dot-screenrec`](../home/dot_local/bin/executable_dot-screenrec)
 wraps the tool. Because a niri keybind has no terminal to `Ctrl-C`, **stopping is
-a separate command** that sends `SIGINT` to the running encoder (wl-screenrec
-finalizes the `.mp4` cleanly on that signal):
+a separate command** that sends `SIGINT` to the running recorder
+(gpu-screen-recorder finalises the `.mp4` — writes the moov atom — on that signal):
 
 ```sh
 dot-screenrec region          # slurp a rectangle, then record it
 dot-screenrec screen          # record the focused monitor
 dot-screenrec stop            # finish & save the running recording
 
-dot-screenrec region audio    # add the default audio source (opt-in)
+dot-screenrec region audio    # add desktop audio (opt-in)
 dot-screenrec screen audio
 ```
 
@@ -95,10 +88,15 @@ How it behaves:
   `$XDG_RUNTIME_DIR/dot-screenrec.state`. Starting a mode while a recording is
   already running is refused with a notification — stop the current one first.
 - **Silent by default.** Audio is opt-in via a trailing `audio` arg (adds
-  `--audio`), so a public repo never captures your mic by accident.
-- **Web-ready output.** Files are `.mp4` with `--codec avc` (h264), which plays
-  inline in any browser `<video>` — no transcode before a blog embed. They land
-  in `$XDG_VIDEOS_DIR` as `Screencast from <timestamp>.mp4`.
+  `-a default_output`, i.e. desktop sound), so a public repo never captures audio
+  by accident.
+- **Web-ready output.** Files are `.mp4` with h264 (`-k h264`), which plays inline
+  in any browser `<video>` — no transcode before a blog embed. They land in
+  `$XDG_VIDEOS_DIR` as `Screencast from <timestamp>.mp4`.
+- **Fail-fast.** After launch it waits 0.5 s and confirms the recorder PID is
+  still alive before writing the statefile and claiming success — so a missing
+  NVENC or an inaccessible KMS device shows a "Recording failed to start" toast
+  instead of a false success that a later `stop` reports as "Nothing is recording."
 - **Feedback.** `notify-send` fires a fresh notification on start
   (`● Recording — region`) and on stop (the saved path).
 
@@ -119,5 +117,6 @@ passing the `audio` arg if you record talking demos often.
 
 ## References
 
-- [wl-screenrec README](https://github.com/russelltg/wl-screenrec)
+- [gpu-screen-recorder](https://git.dec05eba.com/gpu-screen-recorder/) · `man gpu-screen-recorder.1`
 - [slurp](https://github.com/emersion/slurp)
+- [ADR 0018](adr/0018-gpu-screen-recorder-for-nvidia.md) — why this tool over wl-screenrec

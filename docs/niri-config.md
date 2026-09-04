@@ -180,30 +180,72 @@ gets VS Code, `home` gets Discord — and `zen` plain-spawns only on single-moni
 (quote each argument separately) and `spawn-sh` when you need a shell (pipes, `~`,
 multiple commands).
 
-**The secondary-monitor startup race.** A window-rule's `open-on-workspace` can
-only route an app once its target named workspace exists, and niri creates an
-`open-on-output`-pinned workspace only after that monitor is enumerated. The
-_primary_ monitor (the one hosting `terminal`, that niri comes up on) is ready at
-login, so apps pinned there — ghostty and VS Code — spawn directly and route fine.
-A _secondary_ monitor (work's `DP-1`, home's `DP-3`) enumerates **after** login:
-any app launched before then has no target workspace and collapses onto that
-output's first slot. A fixed `sleep` only gambles against the display's init time
-on a given boot (a `sleep 3` on Teams still lost the race after a cold boot).
+**The output startup race.** A window-rule's `open-on-workspace` can only route an
+app once its target `open-on-output`-pinned workspace can resolve — which needs
+that monitor **enumerated with a logical position**. Apps launched before then
+have no positioned output to resolve against and collapse onto whatever's active.
+The fix therefore keys on **which output an app's workspace is pinned to** — a
+**login-ready** one (the primary, positioned the instant niri comes up) vs a
+**late-enumerating** one (a secondary monitor, positioned _after_ login). See
+[ADR 0022](adr/0022-login-ready-vs-late-enumerating-output-startup.md) and the
+CONTEXT.md glossary.
 
-So apps bound to a secondary monitor go through **`dot-niri-startup`**
-(`home/dot_local/bin/`, on `PATH`):
+- **Login-ready output → plain spawn.** The primary (`work`'s `HDMI-A-2`, `home`'s
+  `HDMI-A-1`, `laptop`'s lone panel) is up at login, so the window-rule routes the
+  window with no help. `zeditor` (`→ coding`) just `spawn-at-startup`s. **ghostty is
+  the exception**: the output is ready, but a plain spawn silently exits 0 at boot with
+  no window (a _session_-readiness race — portal/dbus still settling — not the output
+  race), so it's wrapped in `dot-spawn-ghostty` (short settle delay + boot stderr/exit
+  log; see below). A plain spawn also runs under niri's own `app-niri-<app>.scope`, so
+  the app's stderr reaches the journal — worth having when an app fails to appear.
+- **Late-enumerating output → `dot-niri-startup`.** A secondary monitor (`work`'s
+  `DP-1`, `home`'s `DP-3`) enumerates after login, so launching its apps now races
+  and they collapse onto its first slot. Route them through **`dot-niri-startup`**
+  (`home/dot_local/bin/`, on `PATH`):
 
 ```kdl
-spawn-at-startup "dot-niri-startup" "DP-1" "zen-browser" "google-chrome-stable" "slack" "teams-for-linux"
+spawn-at-startup "dot-spawn-ghostty"  // -> terminal on the login-ready primary (delay + log)
+spawn-at-startup "dot-niri-startup" "DP-3" "zen-browser" "google-chrome-stable" "discord"
 ```
 
-It polls `niri msg -j workspaces` until a **named** workspace reports that output
-(the exact precondition for routing), then launches each command in order with a
-small gap — so list order becomes left-to-right column order (zen takes the
-browser's left column, chrome the next). The poll is bounded (~30 s) so an
-unplugged monitor degrades to launching anyway instead of hanging the session.
-work gates its `DP-1` batch (zen/chrome/slack/teams); home gates its `DP-3` batch
-(zen/chrome/discord) — the two boxes are structurally identical.
+`dot-niri-startup` polls `niri msg -j outputs` until `<output>` reports a non-null
+logical position, then launches each command in order with a small gap — so list
+order becomes left-to-right column order (zen takes the browser's left column,
+chrome the next). The poll is bounded (~30 s) so an unplugged monitor degrades to
+launching anyway instead of hanging the session. A fixed `sleep` only gambles
+against the display's init time on a given boot (a `sleep 3` on Teams still lost the
+race after a cold boot). `work` batches its `DP-1` apps; `home` batches its `DP-3`
+apps — the two boxes are structurally identical.
+
+**Why ghostty is _not_ gated on the output** (it was, twice — see ADR 0022). The gate
+keys on the output, not on "a named workspace reports that output" — an earlier version
+polled for the latter, but niri doesn't surface an empty persistent workspace until a
+window occupies it (chicken-and-egg), so that poll stalled. Re-basing it on output
+enumeration fixed the stall but exposed the deeper error: on a **login-ready** output
+the poll is a **no-op** (`gate=ready after 0 polls`, always), so gating ghostty there
+guarded nothing.
+
+**Why ghostty _is_ wrapped in `dot-spawn-ghostty`.** Dropping the gate for a plain
+`spawn-at-startup "ghostty"` was tried next — and a real light→dark reboot proved it
+_also_ fails: the boot ghostty exits 0 with **no window, no stderr, no coredump** ~0.5 s
+in. Ruled out — output timing (both outputs were already positioned before it spawned),
+single-instance (`gtk-single-instance=false`), a self-exiting shell (`command=/bin/bash`),
+and a crash. What's left is a silent early exit against a session that isn't fully ready
+(portal/dbus/`graphical-session.target` still settling); a hand-opened ghostty seconds
+later always works, and `zeditor` survives only because its slow cold start misses the
+window. So ghostty goes through
+[`dot-spawn-ghostty`](../home/dot_local/bin/executable_dot-spawn-ghostty): a short
+settle **delay** (a fixed nudge — we don't yet know _which_ readiness signal is missing,
+and gating on the wrong one is the trap that made three earlier fixes wrong) plus a
+capture of ghostty's stderr + exit code to `~/.local/state/ghostty-boot.log` so the next
+boot fixes-or-explains (an early `exit rc=0` line = still reproduced). Temporary — revert
+to a plain `spawn-at-startup "ghostty"` once a few boots confirm the delay holds.
+
+`dot-niri-startup` appends a compact per-boot trace to
+`~/.local/state/niri-startup.log` (a temporary diagnostic — safe to delete) so a
+recurrence in the secondary batch is self-documenting instead of needing another
+reboot to guess; `dot-theme-reconcile` traces the theme handoff to
+`~/.local/state/theme-reconcile.log` the same way.
 
 ### window rules
 

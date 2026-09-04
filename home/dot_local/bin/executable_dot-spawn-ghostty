@@ -1,0 +1,50 @@
+#!/bin/sh
+# Launch ghostty at login with a short settle delay + boot stderr/exit capture.
+#
+# Why this exists (ADR 0022, docs/niri-config.md): ghostty's plain `spawn-at-startup`
+# window fails to appear at boot -- the process starts and exits 0 with NO stderr, no
+# coredump, and NO window, ~0.5s after niri comes up. Ruled out: it is NOT the
+# login-ready vs late-enumerating OUTPUT race (the outputs are already positioned when
+# ghostty spawns), NOT single-instance (gtk-single-instance=false), NOT a shell that
+# self-exits (command=/bin/bash), and NOT a crash (exit 0, no core). It is a silent
+# early exit against a session that isn't fully ready (portal/dbus/graphical-session
+# still settling). A hand-opened ghostty a few seconds later always works; zeditor
+# plain-spawns to the same output and survives only because its slow cold start misses
+# this window.
+#
+# Two jobs, deliberately paired so one reboot both fixes-or-explains:
+#   1. sleep a short beat so the session settles past the failure window. This is the
+#      working-hypothesis FIX -- a fixed delay, not a readiness gate: we don't yet know
+#      WHICH signal is the missing precondition, so a nudge beats gating on the wrong
+#      one (the trap that made three earlier ghostty fixes wrong -- see ADR 0022).
+#   2. capture ghostty's stderr + exit code to a per-boot log, so if the delay is NOT
+#      enough the next boot still says why: an early `exit rc=0` line = still
+#      reproduced (delay didn't help); no such line = the delay fixed it. This restores
+#      the stderr that ADR 0022's plain-spawn was supposed to surface but didn't
+#      (ghostty logs nothing on this exit). Temporary -- drop the wrapper once a few
+#      boots confirm the fix and just `spawn-at-startup "ghostty"`.
+#
+# NOT exec: ghostty runs as a child so we can record its exit status; the wrapper stays
+# as the scope's main pid (a cheap sh) for ghostty's lifetime, which is fine.
+set -eu
+
+log="${XDG_STATE_HOME:-$HOME/.local/state}/ghostty-boot.log"
+now() { date '+%Y-%m-%dT%H:%M:%S%z'; }
+log_line() { printf '%s [pid=%s] %s\n' "$(now)" "$$" "$1" >>"$log" 2>/dev/null || true; }
+
+# Settle delay. 1.5s clears the observed failure window with margin; the terminal is on
+# the login-ready primary output, so this only delays an already-instant login slightly.
+delay=1.5
+
+log_line "start: sleeping ${delay}s before launch"
+sleep "$delay"
+
+# Run ghostty, folding its stderr into the same per-boot log. The `if` disables `set -e`
+# for this one command so a non-zero exit is captured, not fatal.
+log_line "launch: ghostty"
+if ghostty 2>>"$log"; then
+	rc=0
+else
+	rc=$?
+fi
+log_line "exit: ghostty rc=${rc}"

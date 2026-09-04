@@ -108,12 +108,11 @@ xdg-mime query default application/x-7z-compressed   # verify
 > `~/.config/mimeapps.list`, which is intentionally **not** tracked in this repo
 > (it holds machine-local default-app choices).
 
-## Terminal file manager: Yazi
+## Terminal file manager: superfile
 
-With `7zz` installed, [Yazi](https://yazi-rs.github.io/) can list and extract
-archives from the keyboard. For inline **content preview** add an archive
-previewer plugin (e.g. `ouch.yazi` / a `7z` previewer via `ya pkg`); the backends
-it needs — `7zz`, `ouch` — are already here.
+With `7zz` installed, [superfile](https://superfile.dev/) can list and extract
+archives from the keyboard. The archive backends it leans on — `7zz`, `ouch` —
+are already here.
 
 ## Which format?
 

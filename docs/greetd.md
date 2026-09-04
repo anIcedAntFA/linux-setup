@@ -17,6 +17,13 @@ managed **login session**:
 
 - `systemctl --user import-environment` — hands the login environment to the
   **systemd user manager**, so `systemctl --user` services see the right vars.
+  This upstream call passes no variable list, so systemd prints
+  `Calling import-environment without a list of variable names is deprecated` on the
+  greeter VT at login (and again on shutdown). It's **cosmetic** — the import still
+  works — and it comes from the package-owned `/usr/bin/niri-session`, so we don't
+  patch it (an update would clobber the edit). Note: because this runs _before_ niri
+  is up, `WAYLAND_DISPLAY` isn't exported here — see the `WAYLAND_DISPLAY` guard in
+  [theme-sync.md](theme-sync.md).
 - seeds the **D-Bus activation** environment, so D-Bus-activated services (like the
   Secret Service) start with the correct context.
 - brings up `graphical-session.target`, the anchor other user units order against.

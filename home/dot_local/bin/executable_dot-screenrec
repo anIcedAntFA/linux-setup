@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
-# Record the screen with wl-screenrec. Start a capture, then stop it later with
-# a separate `stop` invocation (SIGINT), since a niri keybind has no terminal to
-# Ctrl-C. One recording at a time; state lives in a runtime pidfile.
+# Record the screen with gpu-screen-recorder. Start a capture, then stop it later
+# with a separate `stop` invocation (SIGINT), since a niri keybind has no terminal
+# to Ctrl-C. One recording at a time; state lives in a runtime pidfile.
 #
 #   dot-screenrec region [audio]   # slurp a rectangle, then record it
 #   dot-screenrec screen [audio]   # record the focused monitor
 #   dot-screenrec stop             # finish the running recording
 #
-# A trailing `audio` on a start mode adds --audio (default capture source).
+# A trailing `audio` on a start mode adds desktop-audio capture.
+#
+# Why gpu-screen-recorder and not wl-screenrec: this box is an NVIDIA GPU with the
+# decode-only nvidia-vaapi-driver, so VA-API *encoding* is unavailable. wl-screenrec
+# imports the capture dmabufs through a VA-API frame context regardless of encoder,
+# which fails on NVIDIA ("Failed to create vaapi frame context ... Unsupported
+# format: bgr0") for both hardware and --no-hw software paths. gpu-screen-recorder
+# captures via DRM/KMS and encodes with NVENC directly, no VA-API involved. It also
+# needs no screencast portal for monitor capture. See docs/adr/0018 and
+# docs/screen-recording.md.
 
 set -o errexit
 set -o pipefail
@@ -26,7 +35,7 @@ notify() {
 }
 
 running_pid() {
-	# Echo the live wl-screenrec PID from the statefile, or nothing.
+	# Echo the live gpu-screen-recorder PID from the statefile, or nothing.
 	[ -f "${STATE}" ] || return 0
 	local pid
 	pid="$(head -n1 "${STATE}")"
@@ -44,6 +53,7 @@ stop() {
 		exit 0
 	fi
 	file="$(sed -n 2p "${STATE}")"
+	# gpu-screen-recorder finalises the container on SIGINT (writes the moov atom).
 	kill -INT "${pid}"
 	rm -f "${STATE}"
 	notify "Recording saved" "${file}"
@@ -60,14 +70,17 @@ if [ -n "$(running_pid)" ]; then
 	exit 1
 fi
 
-# Resolve the capture target into wl-screenrec args.
-declare -a REC_ARGS=(--codec avc)
+# Common encoder args: NVENC h264 in an mp4 -- plays inline in any browser/blog.
+declare -a REC_ARGS=(-k h264 -c mp4 -q very_high -f 60 -cursor yes)
+
+# Resolve the capture target.
 case "${MODE}" in
 region)
-	REC_ARGS+=(--geometry "$(slurp)")
+	# slurp prints WxH+X+Y in gpu-screen-recorder's -region format directly.
+	REC_ARGS+=(-w region -region "$(slurp -f '%wx%h+%x+%y')")
 	;;
 screen)
-	REC_ARGS+=(--output "$(niri msg --json focused-output | jq --raw-output .name)")
+	REC_ARGS+=(-w "$(niri msg --json focused-output | jq --raw-output .name)")
 	;;
 *)
 	echo "'${MODE}' is not a supported mode, aborting!" >&2
@@ -75,15 +88,29 @@ screen)
 	;;
 esac
 
-[ "${WANT_AUDIO}" = "audio" ] && REC_ARGS+=(--audio)
+# `audio` captures desktop sound (the default output's monitor).
+[ "${WANT_AUDIO}" = "audio" ] && REC_ARGS+=(-a default_output)
 
-# Where the file lands. mp4 + h264 plays inline in any browser/blog.
+# Where the file lands.
 DIR="${XDG_VIDEOS_DIR:-${HOME}/Videos}"
 mkdir -p "${DIR}"
 FILE="${DIR}/Screencast from $(date '+%Y-%m-%d %H-%M-%S').mp4"
 
-# Record our own PID + the target path, then hand this process over to
-# wl-screenrec (exec keeps the PID stable so `stop` can SIGINT it).
-printf '%s\n%s\n' "$$" "${FILE}" >"${STATE}"
+# Launch detached (nohup keeps it alive once this short-lived, niri-spawned script
+# exits; the background PID is the recorder's, so `stop` can SIGINT it directly).
+nohup gpu-screen-recorder "${REC_ARGS[@]}" -o "${FILE}" >/dev/null 2>&1 &
+REC_PID=$!
+
+# A missing NVENC, an inaccessible KMS device, or a bad geometry makes
+# gpu-screen-recorder exit within milliseconds. Confirm it's actually recording
+# *before* we write the statefile and claim success -- otherwise the start toast
+# lies and a later `stop` finds a dead PID and reports "Nothing is recording."
+sleep 0.5
+if ! kill -0 "${REC_PID}" 2>/dev/null; then
+	notify "Recording failed to start" "gpu-screen-recorder exited immediately. Check 'gpu-screen-recorder --list-monitors' and NVENC availability."
+	exit 1
+fi
+
+# Persist the recorder PID + target path so `stop` can find and SIGINT it.
+printf '%s\n%s\n' "${REC_PID}" "${FILE}" >"${STATE}"
 notify "● Recording — ${MODE}${WANT_AUDIO:+ + audio}" "Mod+Ctrl+Backslash to stop"
-exec wl-screenrec --filename "${FILE}" "${REC_ARGS[@]}"

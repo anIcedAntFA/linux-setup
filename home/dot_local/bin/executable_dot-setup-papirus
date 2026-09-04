@@ -1,0 +1,115 @@
+#!/bin/sh
+# One-time-per-machine setup: build two USER-LOCAL Papirus icon themes so the
+# darkman hook can flip folder colours per mode with a plain `gsettings icon-theme`
+# switch -- no sudo, ever.
+#
+#   Papirus-Latte    -> Inherits Papirus-Light, Catppuccin Latte (sapphire) folders
+#   Papirus-Dracula  -> Inherits Papirus-Dark,  Dracula (purple) folders
+#
+# Why thin inherited themes instead of copying into /usr/share/icons/Papirus-*:
+# the stock Papirus-Light/Dark symlink most size dirs back to base Papirus, so a
+# `cp -r` collides ("cannot overwrite non-directory ... with directory"). Instead
+# each theme here overrides ONLY the Places folder icons and inherits everything
+# else (panel/symbolic light-vs-dark icons) from its stock parent. Everything lives
+# under ~/.local/share/icons, so no sudo and no papirus-folders run at toggle time.
+#
+# The upstream folder sets ship per-colour SVGs (folder-cat-latte-sapphire-*.svg,
+# folder-dracula-purple-*.svg); we copy just the chosen colour and strip the colour
+# infix so they become the theme's DEFAULT folder icons (folder.svg, folder-*.svg,
+# user-*.svg). Idempotent; re-run after a Papirus/upstream update. See
+# docs/theme-sync.md and docs/adr/0021.
+set -eu
+
+# Must run as your user (NOT sudo): themes are built under your $HOME. Running with
+# sudo would build them under /root and clone into /root/.cache.
+if [ "$(id -u)" -eq 0 ]; then
+	echo "dot-setup-papirus: run as your user, not with sudo." >&2
+	exit 1
+fi
+
+# Stock parents must exist (papirus-icon-theme package).
+for t in Papirus-Light Papirus-Dark; do
+	[ -d "/usr/share/icons/$t" ] || {
+		echo "dot-setup-papirus: /usr/share/icons/$t missing -- install papirus-icon-theme first." >&2
+		exit 1
+	}
+done
+
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/papirus-folders-src"
+dest="${XDG_DATA_HOME:-$HOME/.local/share}/icons"
+sizes="22x22 24x24 32x32 48x48 64x64"
+mkdir -p "$cache" "$dest"
+
+clone() { # $1=url  $2=dir
+	if [ -d "$cache/$2/.git" ]; then
+		git -C "$cache/$2" pull --quiet --ff-only || true
+	else
+		git clone --depth 1 --quiet "$1" "$cache/$2"
+	fi
+}
+
+# build_theme <name> <parent> <src-places-root> <colour-token> <comment>
+# Copies every "*<token>*.svg" from each <root>/<size>/places into the new theme,
+# renaming it to the default name by stripping "-<token>".
+build_theme() {
+	name=$1
+	parent=$2
+	root=$3
+	token=$4
+	comment=$5
+	themedir="$dest/$name"
+
+	rm -rf "$themedir"
+	mkdir -p "$themedir"
+
+	dirs=""
+	for s in $sizes; do dirs="${dirs}${dirs:+,}$s/places"; done
+	{
+		echo "[Icon Theme]"
+		echo "Name=$name"
+		echo "Comment=$comment"
+		echo "Inherits=$parent,Papirus,hicolor"
+		echo "Directories=$dirs"
+		echo ""
+		for s in $sizes; do
+			echo "[$s/places]"
+			echo "Context=Places"
+			echo "Size=${s%x*}"
+			echo "Type=Fixed"
+			echo ""
+		done
+	} >"$themedir/index.theme"
+
+	for s in $sizes; do
+		srcdir="$root/$s/places"
+		[ -d "$srcdir" ] || continue
+		outdir="$themedir/$s/places"
+		mkdir -p "$outdir"
+		for f in "$srcdir"/*"$token"*.svg; do
+			[ -e "$f" ] || continue
+			target=$(basename "$f" | sed "s/-$token//")
+			cp -f "$f" "$outdir/$target"
+		done
+	done
+}
+
+clone https://github.com/catppuccin/papirus-folders catppuccin
+clone https://github.com/dracula/papirus-folders dracula
+
+echo "Building Papirus-Latte (Catppuccin Latte sapphire folders)…"
+build_theme Papirus-Latte Papirus-Light \
+	"$cache/catppuccin/src" cat-latte-sapphire \
+	"Papirus-Light with Catppuccin Latte (sapphire) folders"
+
+echo "Building Papirus-Dracula (Dracula purple folders)…"
+build_theme Papirus-Dracula Papirus-Dark \
+	"$cache/dracula/Icons" dracula-purple \
+	"Papirus-Dark with Dracula (purple) folders"
+
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+	gtk-update-icon-cache -qf "$dest/Papirus-Latte" 2>/dev/null || true
+	gtk-update-icon-cache -qf "$dest/Papirus-Dracula" 2>/dev/null || true
+fi
+
+echo "Done. darkman's set-color-scheme now flips icon-theme between"
+echo "Papirus-Latte (light) and Papirus-Dracula (dark)."

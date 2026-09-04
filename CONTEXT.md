@@ -76,7 +76,7 @@ _Avoid_: host, box, device (in config we say profile / the `machine` var).
 
 **Desktop shell** vs **Login shell**:
 Two unrelated things that both get called "shell". The **desktop shell** is
-[Noctalia](https://github.com/noctalia-dev/noctalia-shell) — the Wayland bar,
+[Noctalia](https://github.com/noctalia-dev/noctalia) — the Wayland bar,
 widgets, and launcher layer that sits on top of the niri compositor. The **login
 shell** is [fish](https://fishshell.com/) — the interactive command shell in the
 terminal. When a doc or the README says "shell" unqualified, prefer one of these
@@ -95,6 +95,22 @@ session.
 _Avoid_: bare "session" (say which); conflating any of these with a **niri
 workspace**, a **Multiplexer session** (zellij), or the Secret Service's own notion
 of a keyring "session".
+
+**Login-ready output** vs **Late-enumerating output**:
+The two kinds of monitor from the point of view of **startup** (`spawn-at-startup`).
+A **login-ready output** has a logical position the instant niri comes up — the
+**primary** on each box (`work`/`home`: `HDMI-A-2`/`HDMI-A-1`; `laptop`: its lone
+panel). A **late-enumerating output** gets its logical position only _after_ login —
+the **secondary** monitor (`work`: `DP-1`, `home`: `DP-3`). The distinction decides
+_how_ an auto-started app is launched, and it's the app's **pinned output** that
+classifies it, not the app: an app whose workspace lives on a login-ready output
+**plain-spawns** (`spawn-at-startup "app"`; the window-rule's `open-on-workspace`
+routes it), while one pinned to a late-enumerating output goes through
+**`dot-niri-startup`**, which waits for that output to be positioned before
+launching. See [ADR 0022](docs/adr/0022-login-ready-vs-late-enumerating-output-startup.md).
+_Avoid_: "primary/secondary" as if it were about monitor _importance_ (here it's
+purely login-time readiness); gating an app on a login-ready output (the poll is a
+no-op there — a plain spawn is correct and keeps stderr on the journal).
 
 ## Terminal workspace layers
 
@@ -154,8 +170,30 @@ The system-wide dark/light preference — the `org.gnome.desktop.interface color
 gsetting (`prefer-dark` / `prefer-light`), served to apps by the gtk XDG portal.
 [darkman](https://darkman.whynothugo.nl/) is its single writer, driven by both a
 sunrise/sunset schedule and a manual keybind. It is a _mode_, not a colour palette;
-it _selects_ a theme per app but is not itself one.
-_Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette.
+it _selects_ a theme per app but is not itself one. The Noctalia **desktop shell**
+can also write this gsetting, but it is deliberately kept a _follower_
+(`colorSchemes.syncGsettings:false` + darkman's hook drives it) so darkman stays
+the sole writer — see [ADR 0019](docs/adr/0019-darkman-owns-mode-noctalia-follows.md).
+_Avoid_: calling the mode a "theme"; "dark mode" when you mean the palette; assuming
+the desktop shell owns the mode (darkman does).
+
+**Wallpaper** (the other mode channel):
+The per-monitor background image, one per mode — also darkman-driven (its
+`set-wallpaper` hook maps each connector to a dark/light image on every transition).
+Critically, unlike the **Color-scheme**, it has **no compositor-independent
+fallback**: darkman writes the color-scheme gsetting directly (the gtk portal
+broadcasts it) even with the desktop shell down, but the wallpaper is set **only**
+through Noctalia IPC (`noctalia msg wallpaper-set`). So a boot where darkman's hooks
+fire before Noctalia's IPC is up breaks the wallpaper _unconditionally_ (the IPC call
+fails silently, Noctalia asserts its stale persisted image) while the mode self-heals
+— the classic symptom is **dark mode under a light wallpaper**. Because it can't
+self-heal, the wallpaper is re-driven by the same login **reconcile**
+([`dot-theme-reconcile`](home/dot_local/bin/executable_dot-theme-reconcile)) that
+fixes the mode, once Noctalia can receive it. See
+[ADR 0019](docs/adr/0019-darkman-owns-mode-noctalia-follows.md), docs/theme-sync.md.
+_Avoid_: assuming the wallpaper follows the mode "for free" (it has no gsetting
+fallback); treating a stale boot wallpaper as a Noctalia bug (it's the IPC-only
+boot race).
 
 **Theme** (per app):
 The concrete palette an app shows for a given color-scheme mode — e.g. VS Code's
@@ -164,18 +202,85 @@ Dracula ↔ Github Light, Zed's Dracula ↔ Catppuccin Latte, fish's Dracula Off
 mode to its own two themes.
 _Avoid_: "color-scheme" for a single app's palette; assuming one global theme.
 
+**Noctalia palette** vs **MineScheme** (the identity):
+A **Noctalia palette** is the set of Material-3 role colours (`mPrimary`,
+`mSurface`, … + a `terminal` block) Noctalia resolves for the current mode and
+feeds into every **Noctalia template**. The active palette comes from one of four
+_sources_ (`[theme].source` in Noctalia's config: `builtin` / `wallpaper` /
+`community` / `custom`). **MineScheme** is _our_ **custom** palette — the single
+file that encodes this setup's whole identity: **`light` = Catppuccin Latte,
+`dark` = Dracula**. One file carries both variants; in v5 it lives at
+`~/.config/noctalia/palettes/MineScheme.json` (the v4 `colorschemes/<name>/…`
+path is dead). Because Noctalia's own palette _is_ MineScheme, every Noctalia
+template (btop, qt, niri…) renders that identity automatically. (GTK is **not**
+templated — libadwaita + adw-gtk3 self-follow the mode live; see
+[ADR 0021](docs/adr/0021-tiered-app-theming-minescheme-identity.md).)
+_Avoid_: calling the Noctalia palette a **Theme** (a palette is Noctalia's
+source colours; a Theme is one app's rendered result); assuming the built-in
+Catppuccin palette is active (source is `custom`→MineScheme).
+
 **Noctalia template** (theme-export):
 Noctalia's own mechanism for pushing its generated colour palette into _other_
 apps: an input template file is filled with the current palette and written to a
-target app's config, optionally running a reload hook. Built-in ones ship in
-`settings.json` under `templates.activeTemplates` (niri, yazi, zathura, btop, gtk,
-qt); custom ones go in `home/dot_config/noctalia/user-templates.toml`. It is **not**
+target app's config, optionally running a reload hook. In **v5** the built-in
+catalog ships on disk (`/usr/share/noctalia/assets/templates/builtin.toml`) and is
+enabled per-id via `[theme.templates].builtin_ids` / `community_ids` in Noctalia's
+app-owned config (`~/.local/state/noctalia/settings.toml`) — **not** the dead v4
+`settings.json → templates.activeTemplates`; custom ones go in a hand-written
+`~/.config/noctalia/*.toml`. It is **not**
 per-machine config and **not** a chezmoi template — a wholly separate meaning of
 "template". So the word carries three senses here: chezmoi `.tmpl` (fills
 `{{ .var }}` at apply), a Noctalia template (palette → another app's theme), and the
 generic sense — always qualify which.
 _Avoid_: reading `user-templates.toml` as a chezmoi/`.tmpl` thing or as machine
 branching; conflating a Noctalia template with the per-app **Theme** it produces.
+
+## Wayland rendering & input
+
+**Native Wayland** vs **XWayland** (the _rendering path_):
+Whether an app draws directly on the Wayland compositor (**native**) or through the
+X11 compatibility layer (**XWayland**). Setting `XDG_SESSION_TYPE=wayland` does **not**
+by itself make an app native — Chromium/Electron apps fall back to XWayland unless
+given an Ozone hint. XWayland means software scaling: blur and caret/scroll jank on
+fractionally-scaled or rotated outputs. The usual root cause of "VS Code feels laggy".
+_Avoid_: assuming a Wayland session implies every app renders natively.
+
+**Ozone** (the Chromium/Electron platform selector):
+Chromium's backend-abstraction layer that picks X11 vs Wayland. Selected with
+`--ozone-platform-hint=auto` (per-app flag) or `ELECTRON_OZONE_PLATFORM_HINT=auto`
+(env). Only **Electron** reads the env var; plain Chromium and **Google Chrome do
+not** — Chrome must be steered via its `.desktop` override.
+_Avoid_: expecting the Electron env var to affect Chrome, or a flags file to affect
+`google-chrome`.
+
+**Desktop entry override**:
+A copy of a system `/usr/share/applications/<name>.desktop` placed under
+`~/.local/share/applications/` with the **same basename**, which shadows the system
+one. Its only job here is to rewrite `Exec=` (force Ozone/Wayland, add IME). Distinct
+from the auto-generated `mimeinfo.cache` / `userapp-*.desktop` files that also land in
+that dir but are cache, not config, and stay untracked (gitignored).
+_Avoid_: calling an override a "new app"; tracking the auto-generated neighbours.
+
+**IM module** vs **Wayland text-input** (the two IME transports):
+Two ways an app reaches fcitx. `GTK_IM_MODULE` / `QT_IM_MODULE` / `XMODIFIERS` route
+input for **X11 / XWayland** apps; **native Wayland** apps use the compositor's
+`text-input` protocol instead (and so don't need — and warn about — `GTK_IM_MODULE`).
+Electron speaks `text-input` only on new-enough versions: current Electron (42, VS
+Code 1.131) does it by default; older Electron (Slack/Teams/Discord) needs the
+`--enable-wayland-ime` flag.
+_Avoid_: assuming one transport covers every app; assuming every Electron app needs
+`--enable-wayland-ime` (it's version-dependent — VS Code no longer does).
+
+**Theme-follow (portal appearance)** vs **Ozone/IME**:
+Three _independent_ properties of a Chromium/Electron app on Wayland, easy to
+conflate. **Ozone** decides native-Wayland vs XWayland (rendering). **`--enable-wayland-ime`**
+decides whether fcitx reaches it. **Theme-follow** is whether it repaints on the
+`org.freedesktop.appearance color-scheme` portal broadcast — a native-Wayland app
+gets the broadcast, but whether it _acts_ on a **live** change is app/version
+dependent (Chrome/Zen do; Discord's stock Electron does so reliably only at launch —
+see [docs/research/discord-wayland-theme-follow.md](docs/research/discord-wayland-theme-follow.md)).
+_Avoid_: assuming Ozone alone makes an app follow the theme; assuming portal
+broadcast reaching an app means it repaints live.
 
 ## Packages
 

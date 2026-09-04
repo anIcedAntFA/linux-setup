@@ -1,0 +1,157 @@
+# Noctalia v5 — machine-agnostic base config (tracked on every profile).
+#
+# This is the low-precedence hand-curated layer. Noctalia merges, in order:
+#   built-in defaults  ->  ~/.config/noctalia/*.toml (this + 10-machine, alpha)
+#   ->  ~/.local/state/noctalia/settings.toml (app/GUI layer, WINS conflicts)
+# So GUI edits land in the untracked state file; to sync them back, re-run the
+# ⋯ menu "Export Config -> Merged User Config" and fold the diff into here /
+# 10-machine.toml. Machine-specific bits (monitors, wallpaper, DPI, lockscreen
+# widget positions) live in 10-machine.toml.tmpl. Custom palette (the
+# Catppuccin-Latte/Dracula identity) is palettes/MineScheme.json.
+# See docs/adr/0020 + docs/adr/0021 + docs/theme-sync.md.
+
+[backdrop]
+blur_intensity = 0.59999998658895493
+enabled = true
+tint_intensity = 0.39999999105930328
+
+[bar.default]
+background_opacity = 0.4999999888241291
+center = [ "clock", "media", "audio_visualizer" ]
+contact_shadow = true
+end = [
+    "tray",
+    "notifications",
+    "clipboard",
+    "network",
+    "bluetooth",
+    "volume",
+    "brightness",
+    "battery",
+    "control-center",
+    "session"
+]
+font_family = "Noto Sans"
+margin_edge = 4
+margin_ends = 16
+padding = 16
+scale = 1.2000000104308128
+start = [ "launcher", "group:g1", "cpu", "ram", "sysmon", "temp" ]
+thickness = 40
+
+    [[bar.default.capsule_group]]
+    accordion = false
+    accordion_direction = "end"
+    enabled = true
+    fill = "surface_variant"
+    id = "g1"
+    members = [ "workspaces" ]
+    opacity = 1.0
+    padding = 6.0
+
+[config]
+
+[control_center]
+sidebar = "full"
+sidebar_section = "full"
+width = 840
+
+[desktop_widgets]
+schema_version = 2
+widget_order = []
+
+    [desktop_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [desktop_widgets.widget]
+
+# Night-light schedule (blue-light / colour-temperature filter) ONLY -- this is
+# separate from the dark/light MODE, which darkman owns (see set-color-scheme).
+# auto_locate=true previously let Noctalia geolocate and it wrote an INVERTED
+# schedule (sunrise=18:00 / sunset=06:00), so night-light never fired. Fixed to a
+# manual schedule: no geolocation daemon, no private lat/long in this public repo.
+# A few minutes' seasonal drift is fine for a blue-light filter.
+# custom_schedule=true is REQUIRED in Noctalia v5: without it a manual
+# sunrise/sunset "no longer schedule on their own" (the config-validate warning).
+# See docs/theme-sync.md.
+[location]
+auto_locate = false
+custom_schedule = true
+sunrise = "06:00"
+sunset = "18:00"
+
+[lockscreen]
+allow_empty_password = true
+blur_intensity = 0.59999998658895493
+tint_intensity = 0.39999999105930328
+
+[nightlight]
+enabled = true
+temperature_day = 6400
+temperature_night = 4000
+
+[notification]
+background_opacity = 0.79999998211860657
+offset_x = 16
+
+# On-Screen Display: the transient overlay for volume/brightness/keyboard-backlight
+# changes (noctalia msg *-osd). Same styling knobs as [notification].
+[osd]
+background_opacity = 0.79999998211860657
+offset_x = 16
+
+[plugins]
+auto_update = "all"
+enabled = [ "noctalia/bongocat", "noctalia/screen_recorder" ]
+
+[shell]
+corner_radius_scale = 1.2000000178813934
+font_family = "Noto Sans"
+niri_overview_type_to_launch_enabled = true
+password_style = "random"
+
+    [shell.animation]
+    speed = 1.2000000178813934
+
+    [shell.launcher]
+    app_grid = true
+    pinned = [ "com.mitchellh.ghostty", "dev.zed.Zed", "zen", "org.gnome.Nautilus", "discord" ]
+
+    [shell.panel]
+    control_center_placement = "floating"
+    control_center_position = "center"
+    floating_offset = 12
+    session_placement = "floating"
+    session_position = "center"
+    transparency_mode = "glass"
+
+    [shell.screen_corners]
+    size = 40
+
+    [shell.shadow]
+    alpha = 0.59999998658895493
+
+# The identity lives in palettes/MineScheme.json: source = custom selects it.
+# dark = Dracula, light = Catppuccin Latte. Every enabled template renders that
+# palette per mode, so btop/gtk/qt/niri all follow it automatically.
+# darkman owns the dark/light MODE (via `noctalia msg theme-mode-set`), so `mode`
+# here is only an initial default. See docs/adr/0021.
+[theme]
+builtin = "Catppuccin"
+community_palette = "Oxocarbon"
+custom_palette = "MineScheme"
+mode = "dark"
+source = "custom"
+wallpaper_scheme = "m3-content"
+
+    [theme.templates]
+    # gtk3/gtk4 deliberately absent: libadwaita + adw-gtk3 self-follow the
+    # color-scheme LIVE via the appearance portal, so a Noctalia gtk template
+    # (whose @define-color overrides are read only at app launch) only made
+    # already-open GTK apps invert on a live toggle. GTK is now Tier A
+    # (self-follow); the darkman hook flips gtk-theme + a named accent-color.
+    # See docs/adr/0021 and docs/theme-sync.md.
+    builtin_ids = [ "btop", "niri", "qt" ]
+    community_ids = [ "zathura" ]

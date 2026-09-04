@@ -1,0 +1,106 @@
+#!/bin/sh
+# Reconcile Noctalia's dark/light MODE + wallpaper to darkman's at login.
+#
+# The boot race this fixes: darkman.service starts before Noctalia's IPC is up, so
+# darkman's set-color-scheme hook runs its `noctalia msg theme-mode-set` BEFORE the
+# socket exists -- it fails silently (|| true) while the gsettings write lands with
+# the schedule-correct mode. Noctalia then starts and, ONCE, asserts its persisted
+# `[theme] mode` from ~/.local/state/noctalia/settings.toml, writing the
+# color-scheme gsetting back to that (stale) value. When the stale mode disagrees
+# with the schedule (e.g. shut down in light, boot after sunset), the whole desktop
+# comes up in the wrong mode until a manual `Mod+Shift+D` -- and because darkman's
+# INTERNAL mode is already correct, the first toggle is a visual no-op and it takes
+# two presses to flip. See docs/theme-sync.md and docs/adr/0019.
+#
+# Fixed-mode Noctalia does NOT keep re-asserting (verified: an external gsetting
+# write holds), so a single post-startup reconcile is enough and it sticks. darkman
+# is the source of truth for the mode (ADR 0019); this only pushes that truth into
+# Noctalia once it can receive it.
+#
+# Spawned from the niri config (spawn-at-startup) right after Noctalia, so it
+# inherits the session's WAYLAND_DISPLAY and runs niri-session-only.
+set -eu
+
+# Diagnostic log (temporary): records what the reconcile saw each boot so a failed
+# strict reboot (shut down light -> boot after sunset) explains itself instead of
+# needing another reboot to guess. Mirrors dot-niri-startup's trace. Safe to delete.
+log="${XDG_STATE_HOME:-$HOME/.local/state}/theme-reconcile.log"
+now() { date '+%Y-%m-%dT%H:%M:%S%z'; }
+log_line() { printf '%s [pid=%s] %s\n' "$(now)" "$$" "$1" >>"$log" 2>/dev/null || true; }
+
+log_line "start"
+
+# WAYLAND_DISPLAY guard, same as the darkman hook: this can start before niri has
+# exported WAYLAND_DISPLAY into the systemd user environment, and `noctalia msg`
+# derives its socket name from it. Pull it from the manager env when our own lacks
+# it. See docs/adr/0019.
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+	WAYLAND_DISPLAY=$(systemctl --user show-environment 2>/dev/null |
+		sed -n 's/^WAYLAND_DISPLAY=//p')
+	[ -n "${WAYLAND_DISPLAY}" ] && export WAYLAND_DISPLAY
+fi
+
+sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/noctalia-${WAYLAND_DISPLAY:-}.sock"
+
+# Wait for Noctalia's IPC socket (bounded ~30s so a missing shell can't hang login).
+tries=0
+socket=missing
+while [ "$tries" -lt 150 ]; do
+	if [ -S "$sock" ]; then
+		socket=ready
+		break
+	fi
+	tries=$((tries + 1))
+	sleep 0.2
+done
+log_line "socket=$socket after ${tries} polls (~$((tries / 5))s)"
+
+# darkman recomputes the schedule-correct mode at boot and is authoritative.
+target=$(darkman get 2>/dev/null || echo light)
+case "$target" in
+dark) want=prefer-dark ;;
+*) want=prefer-light ;;
+esac
+
+before=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null | tr -d "'")
+log_line "target=$target want=$want gsetting-before=$before"
+
+# Push darkman's mode into Noctalia until the color-scheme gsetting agrees, to beat
+# Noctalia's one-shot startup assertion (which may land just after the socket
+# appears). Bounded ~8s, then exit regardless -- never block the session. Since
+# fixed-mode Noctalia doesn't re-assert, once it agrees it holds.
+i=0
+cur=$before
+while [ "$i" -lt 16 ]; do
+	noctalia msg theme-mode-set "$target" >/dev/null 2>&1 || true
+	sleep 0.5
+	cur=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null |
+		tr -d "'")
+	[ "$cur" = "$want" ] && break
+	i=$((i + 1))
+done
+
+if [ "$cur" = "$want" ]; then
+	log_line "done: converged gsetting-after=$cur (i=$i)"
+else
+	log_line "done: NOT converged gsetting-after=$cur wanted=$want (i=$i)"
+fi
+
+# Wallpaper is the OTHER darkman-driven channel, and unlike the mode it has NO
+# compositor-independent fallback: darkman writes the color-scheme gsetting directly
+# (portal-broadcast) even with Noctalia down, but the per-monitor wallpaper is set
+# ONLY via Noctalia IPC (`noctalia msg wallpaper-set`). So the same boot race the mode
+# survives (gsetting + the loop above) leaves the wallpaper stuck on Noctalia's stale
+# persisted image -- the split-brain of dark mode under a light wallpaper. darkman's
+# set-wallpaper hook already ran at boot and failed silently (IPC not up), and darkman
+# won't re-fire it without a transition, so re-drive it here now that Noctalia is up.
+# Placed AFTER the mode loop deliberately: that loop converging is our proof Noctalia's
+# one-shot startup assertion is done, so a single wallpaper-set sticks (verified) -- no
+# separate wallpaper poll is needed. See docs/theme-sync.md and docs/adr/0019.
+wp="$HOME/.local/share/darkman/set-wallpaper"
+if [ -x "$wp" ]; then
+	"$wp" "$target" || true
+	log_line "wallpaper: re-drove set-wallpaper $target"
+else
+	log_line "wallpaper: hook missing ($wp)"
+fi

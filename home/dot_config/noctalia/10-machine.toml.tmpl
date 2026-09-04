@@ -1,0 +1,103 @@
+{{- $wp := printf "%s/workspace/github.com/anIcedAntFA/dotfiles/images/wallpaper" .chezmoi.homeDir -}}
+# Noctalia v5 — per-machine layer (DPI, wallpaper, per-output lockscreen).
+# Rendered by chezmoi from `.machine`; the shared layer is 00-base.toml.
+# Merged alphabetically AFTER 00-base and UNDER the app state file. The darkman
+# `set-wallpaper` hook overrides the per-output wallpaper per mode at runtime, so
+# the paths here are just the initial/light default. See docs/theme-sync.md.
+{{ if eq .machine "laptop" -}}
+# laptop: single internal panel eDP-1. Placeholder — refine after the laptop is
+# installed (DPI, real wallpaper, lockscreen widget positions).
+[accessibility]
+ui_scale = 1.0
+
+[wallpaper]
+directory = "{{ $wp }}"
+directory_dark = "{{ $wp }}"
+directory_light = "{{ $wp }}"
+edge_smoothness = 0.4
+transition_duration = 2000
+
+    [wallpaper.monitors.eDP-1]
+    path = "{{ $wp }}/scarlet-tree.png"
+{{- else -}}
+# home + work (same layout): DP-3 (landscape) + HDMI-A-1 (portrait).
+[accessibility]
+ui_scale = 1.2500000111758709
+
+[wallpaper]
+directory = "{{ $wp }}"
+directory_dark = "{{ $wp }}"
+directory_light = "{{ $wp }}"
+edge_smoothness = 0.39999999105930328
+transition_duration = 2000
+
+    [wallpaper.monitors.DP-3]
+    path = "{{ $wp }}/scarlet-tree.png"
+
+    [wallpaper.monitors.HDMI-A-1]
+    path = "{{ $wp }}/F42-01-day.jpg"
+
+[lockscreen_widgets]
+enabled = false
+schema_version = 2
+widget_order = [ "lockscreen-login-box@DP-3", "lockscreen-login-box@HDMI-A-1" ]
+
+    [lockscreen_widgets.grid]
+    cell_size = 16
+    major_interval = 4
+    visible = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@DP-3"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 1536.0
+    cy = 1546.0
+    output = "DP-3"
+    placement_height = 1728.0
+    placement_width = 3072.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@DP-3".settings]
+        background_color = "surface_variant"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+
+    [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1"]
+    box_height = 196.0
+    box_width = 810.0
+    cx = 720.0
+    cy = 2378.0
+    output = "HDMI-A-1"
+    placement_height = 2560.0
+    placement_width = 1440.0
+    rotation = 0.0
+    type = "login_box"
+
+        [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1".settings]
+        background_color = "surface_variant"
+        background_opacity = 0.88
+        background_radius = 12.0
+        center_password_text = false
+        input_opacity = 1.0
+        input_radius = 6.0
+        layout = "regular"
+        show_caps_lock = true
+        show_keyboard_layout = true
+        show_login_button = true
+        show_media = true
+        show_session_buttons = true
+        show_unlock_hint = true
+        show_weather = true
+{{- end }}

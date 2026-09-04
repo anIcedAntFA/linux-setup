@@ -31,13 +31,12 @@ font-style = Medium
 font-style-bold = SemiBold
 font-style-italic = Medium
 font-style-bold-italic = SemiBold
-font-size = 13
+font-size = 14
 
 # --- Cursor -----------------------------------------------------------------
 cursor-style = bar
 cursor-opacity = 1
 adjust-cursor-thickness = 8
-cursor-invert-fg-bg = false
 cursor-click-to-move = true
 cursor-style-blink = true
 custom-shader = shaders/cursor_sweep.glsl

@@ -47,12 +47,13 @@ desktop-launched apps (via `.desktop` files, portal-spawned helpers,
 dbus-activated services) never go through fish — they'd never see a var only
 set in `config.fish`, but they do see anything here.
 
-| File                                                            | Sets                                                   | Why                                                                                                                                                                                                |
-| --------------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`path.conf`](../home/dot_config/environment.d/path.conf)       | `PATH=%h/.local/bin:...`                               | `%h` is a systemd specifier for `$HOME`. Without this, anything launched outside your interactive shell (e.g. a `.desktop` entry) wouldn't see `~/.local/bin` (where `claude` lives).              |
-| [`xdg.conf`](../home/dot_config/environment.d/xdg.conf)         | `XDG_DESKTOP_DIR`, `XDG_DOWNLOAD_DIR`, etc.            | The env-var form of the same info in [`user-dirs.dirs`](../home/dot_config/user-dirs.dirs) — some apps read the env var directly instead of parsing that file, so this keeps both answers in sync. |
-| [`wayland.conf`](../home/dot_config/environment.d/wayland.conf) | `XDG_CURRENT_DESKTOP=niri`, `XDG_SESSION_TYPE=wayland` | Tells apps/portals this is a niri session running on Wayland — affects GTK's `GDK_BACKEND` auto-detection and Electron apps' rendering path.                                                       |
-| [`fcitx5.conf`](../home/dot_config/environment.d/fcitx5.conf)   | `GTK_IM_MODULE`, `QT_IM_MODULE`, `XMODIFIERS`          | Routes text input through fcitx for X11/XWayland apps. Native Wayland apps don't need this — they use the `text-input` protocol directly. See [fcitx5.md](fcitx5.md).                              |
+| File                                                              | Sets                                                   | Why                                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`path.conf`](../home/dot_config/environment.d/path.conf)         | `PATH=${HOME}/.local/bin:...`                          | `${HOME}` because `environment.d` expands `${VAR}` env references, **not** `%` unit specifiers — `%h` stays a literal `%h` here (verify: `systemctl --user show-environment`). Without this, anything launched outside your interactive shell (e.g. a `.desktop` entry) wouldn't see `~/.local/bin` (where `claude` lives).                      |
+| [`xdg.conf`](../home/dot_config/environment.d/xdg.conf)           | `XDG_DESKTOP_DIR`, `XDG_DOWNLOAD_DIR`, etc.            | The env-var form of the same info in [`user-dirs.dirs`](../home/dot_config/user-dirs.dirs) — some apps read the env var directly instead of parsing that file, so this keeps both answers in sync. Uses `${HOME}` for the same reason as `path.conf` (a literal `%h` here sent `dot-screenrec`/`dot-screenshot` output to a stray `%h/` folder). |
+| [`wayland.conf`](../home/dot_config/environment.d/wayland.conf)   | `XDG_CURRENT_DESKTOP=niri`, `XDG_SESSION_TYPE=wayland` | Tells apps/portals this is a niri session on Wayland — affects GTK's `GDK_BACKEND` auto-detection. Note: this alone does **not** make Electron render natively (see `electron.conf`).                                                                                                                                                            |
+| [`electron.conf`](../home/dot_config/environment.d/electron.conf) | `ELECTRON_OZONE_PLATFORM_HINT=auto`                    | Makes Electron apps (VS Code, Slack, Teams, Discord) pick the Wayland Ozone backend instead of falling back to XWayland — the fix for blurry/janky rendering on scaled/rotated outputs. Chrome ignores it (not Electron) — see its `.desktop` override. See [vscode.md](vscode.md).                                                              |
+| [`fcitx5.conf`](../home/dot_config/environment.d/fcitx5.conf)     | `QT_IM_MODULE`, `XMODIFIERS`                           | Routes text input through fcitx for X11/XWayland apps. `GTK_IM_MODULE` is deliberately omitted (Wayland GTK apps use `text-input`; setting it triggers fcitx's Wayland-Diagnose warning). Electron apps get Wayland IME via the per-app `--enable-wayland-ime` flag. See [fcitx5.md](fcitx5.md).                                                 |
 
 `XDG_CURRENT_DESKTOP`/`XDG_SESSION_TYPE` are set **again**, redundantly, in
 niri's own `environment { }` block in
@@ -71,37 +72,44 @@ directly). Screenshots, screen recording, file pickers, and **reading system
 appearance settings** (dark/light mode, accent color) all go through it.
 
 The daemon itself only routes — the actual work is done by **backend**
-implementations (`xdg-desktop-portal-wlr`, `-gtk`, `-gnome`, `-kde`, all
-installed per [packages.md](packages.md)), and
+implementations (`xdg-desktop-portal-gnome` and `-gtk`, per
+[packages.md](packages.md)), and
 [`portals.conf`](../home/dot_config/xdg-desktop-portal/portals.conf)'s
 `[preferred]` block says which backend handles which interface:
 
 ```ini
 [preferred]
-default=wlr                                      # fallback for any interface not listed below
-org.freedesktop.impl.portal.Screenshot=wlr        # screenshots -> wlr backend
-org.freedesktop.impl.portal.ScreenCast=wlr        # screen recording/sharing -> wlr backend
+default=gnome                                     # fallback for any interface not listed below
+org.freedesktop.impl.portal.Screenshot=gnome      # screenshots -> gnome backend
+org.freedesktop.impl.portal.ScreenCast=gnome      # screen recording/sharing -> gnome backend
 org.freedesktop.impl.portal.Settings=gtk          # dark/light mode, accent color, etc. -> gtk backend
 ```
 
-- **`default=wlr`** — `xdg-desktop-portal-wlr` is purpose-built for
-  wlroots-family compositors (niri included) and correctly implements
-  Screenshot/ScreenCast via the wlr-screencopy protocol. It implements almost
-  nothing else — notably no Settings, and likely no FileChooser either (that's
-  traditionally missing from the wlr backend too, though untested here — if
-  "Open file" dialogs ever look wrong in some app, this is the same root
-  cause as the theme bug, just a different unassigned interface).
+> **Was `wlr` until the Noctalia v4→v5 move.** `xdg-desktop-portal-wlr` was
+> removed then (niri isn't wlroots-based; upstream routes screencast through the
+> gnome portal — see [ADR 0017](adr/0017-migrate-noctalia-v4-to-v5.md)), but
+> `portals.conf` was left pointing at the now-uninstalled `wlr` backend, which
+> silently broke screen sharing until this was repointed to `gnome`.
+
+- **`ScreenCast`/`Screenshot`=gnome** — `xdg-desktop-portal-gnome` implements the
+  screencast interface niri supports; it's the upstream-recommended backend for
+  niri. (`dot-screenshot`/`dot-screenrec` capture directly via grim / KMS and
+  don't use these portal interfaces — they matter for _apps_ that request a
+  screenshot or a screen share, e.g. a browser call.)
 - **`Settings=gtk`** — `xdg-desktop-portal-gtk` implements the Settings
   interface by reading `gsettings` (`org.gnome.desktop.interface
   color-scheme`). This is the mechanism that lets portal-aware apps (Ghostty,
-  Chrome) ask "am I in dark mode" without a GNOME session running. Before this
-  line existed, `default=wlr` silently starved that query — confirmed with:
+  Chrome, Zen, Discord, Teams) ask "am I in dark mode" without a GNOME session
+  running. It is deliberately pinned to `gtk` (not `gnome`, which also implements
+  Settings) to keep the darkman→gtk→apps path in [theme-sync.md](theme-sync.md)
+  unchanged. Confirm it answers with:
 
   ```sh
   busctl --user call org.freedesktop.portal.Desktop \
     /org/freedesktop/portal/desktop org.freedesktop.portal.Settings Read ss \
     "org.freedesktop.appearance" "color-scheme"
-  # -> Call failed: Requested setting not found   (before the fix)
+  # -> v u 1    (1 = prefer-dark, 2 = prefer-light; "Requested setting not
+  #             found" instead means the Settings backend is unassigned again)
   ```
 
 ## Troubleshooting
