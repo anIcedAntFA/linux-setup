@@ -121,13 +121,27 @@ mode, and we deliberately didn't build one.
   follow the toggle with **no per-app setting** — the same mechanism as Ghostty;
   they just read the one gsetting the portal broadcasts. (This is why it feels
   "like gtk" — it is the gtk portal.)
-  - **Electron caveat — must run on Wayland/Ozone.** An Electron app only reads
+  - **Electron caveat 1 — must run on Wayland/Ozone.** An Electron app only reads
     the appearance portal when it runs as a native Wayland client. On **XWayland**
     (the Electron default) it never sees the portal and its "sync with system"
-    theme stays stuck. So Discord, Slack, and Teams each ship a
-    `~/.local/share/applications/*.desktop` override with
-    `env XDG_CURRENT_DESKTOP=GNOME … --enable-features=UseOzonePlatform --ozone-platform=wayland`.
-    Without that override the app won't follow the toggle.
+    theme stays stuck. Ozone/Wayland is selected by
+    `ELECTRON_OZONE_PLATFORM_HINT=auto` in
+    [`environment.d/electron.conf`](../home/dot_config/environment.d/electron.conf)
+    (session-wide, all Electron apps); the per-app
+    `~/.local/share/applications/*.desktop` overrides only add
+    `XDG_CURRENT_DESKTOP=GNOME` + `--enable-wayland-ime` (fcitx5 text-input). Verify
+    with `pgrep -af slack` / `teams-for-linux` — you should see `--ozone-platform=wayland`.
+  - **Electron caveat 2 — Slack & Teams also need an app-level opt-in.** Running on
+    Wayland/Ozone is necessary but **not sufficient** for these two: unlike Discord
+    (which follows the portal once on Ozone), Slack and Teams default to a fixed
+    theme and must be told to follow the OS:
+    - **Teams** (teams-for-linux): set `"followSystemTheme": true` in
+      `~/.config/teams-for-linux/config.json` (the file/key doesn't exist by
+      default — create it), then restart Teams.
+    - **Slack**: in-app **Preferences → Themes → Sync with OS setting** (Slack has
+      no config-file knob for this; it's a per-user in-app toggle).
+    - Without these, the `.desktop` override alone leaves them stuck light even
+      though the portal is broadcasting correctly.
 - **GTK/libadwaita apps self-follow live — no Noctalia gtk template.** GTK4/
   libadwaita apps (Nautilus, ghostty's tab-bar) read `org.freedesktop.appearance
   color-scheme` from the portal and repaint light↔dark **live**; GTK3 apps follow

@@ -20,7 +20,13 @@ transition_duration = 2000
     [wallpaper.monitors.eDP-1]
     path = "{{ $wp }}/scarlet-tree.png"
 {{- else -}}
-# home + work (same layout): DP-3 (landscape) + HDMI-A-1 (portrait).
+{{- $land := "DP-3" }}{{- $port := "HDMI-A-1" }}
+{{- if eq .machine "work" }}{{ $land = "DP-1" }}{{ $port = "HDMI-A-2" }}{{ end }}
+# Dual-monitor layout: land landscape + port portrait. Physical connectors
+# differ per machine (home = DP-3 + HDMI-A-1, work = DP-1 + HDMI-A-2 — the two
+# ASUS PA278CV enumerate differently), so they're templated. The lockscreen box
+# geometry below is shared; nudge it per machine in Noctalia's lockscreen editor
+# if an output's scale/mode differs.
 [accessibility]
 ui_scale = 1.2500000111758709
 
@@ -31,34 +37,34 @@ directory_light = "{{ $wp }}"
 edge_smoothness = 0.39999999105930328
 transition_duration = 2000
 
-    [wallpaper.monitors.DP-3]
+    [wallpaper.monitors.{{ $land }}]
     path = "{{ $wp }}/scarlet-tree.png"
 
-    [wallpaper.monitors.HDMI-A-1]
+    [wallpaper.monitors.{{ $port }}]
     path = "{{ $wp }}/F42-01-day.jpg"
 
 [lockscreen_widgets]
 enabled = false
 schema_version = 2
-widget_order = [ "lockscreen-login-box@DP-3", "lockscreen-login-box@HDMI-A-1" ]
+widget_order = [ "lockscreen-login-box@{{ $land }}", "lockscreen-login-box@{{ $port }}" ]
 
     [lockscreen_widgets.grid]
     cell_size = 16
     major_interval = 4
     visible = true
 
-    [lockscreen_widgets.widget."lockscreen-login-box@DP-3"]
+    [lockscreen_widgets.widget."lockscreen-login-box@{{ $land }}"]
     box_height = 196.0
     box_width = 810.0
     cx = 1536.0
     cy = 1546.0
-    output = "DP-3"
+    output = "{{ $land }}"
     placement_height = 1728.0
     placement_width = 3072.0
     rotation = 0.0
     type = "login_box"
 
-        [lockscreen_widgets.widget."lockscreen-login-box@DP-3".settings]
+        [lockscreen_widgets.widget."lockscreen-login-box@{{ $land }}".settings]
         background_color = "surface_variant"
         background_opacity = 0.88
         background_radius = 12.0
@@ -74,18 +80,18 @@ widget_order = [ "lockscreen-login-box@DP-3", "lockscreen-login-box@HDMI-A-1" ]
         show_unlock_hint = true
         show_weather = true
 
-    [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1"]
+    [lockscreen_widgets.widget."lockscreen-login-box@{{ $port }}"]
     box_height = 196.0
     box_width = 810.0
     cx = 720.0
     cy = 2378.0
-    output = "HDMI-A-1"
+    output = "{{ $port }}"
     placement_height = 2560.0
     placement_width = 1440.0
     rotation = 0.0
     type = "login_box"
 
-        [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1".settings]
+        [lockscreen_widgets.widget."lockscreen-login-box@{{ $port }}".settings]
         background_color = "surface_variant"
         background_opacity = 0.88
         background_radius = 12.0
