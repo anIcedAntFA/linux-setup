@@ -4,11 +4,8 @@ bruno-bin
 flyctl
 google-breakpad
 google-chrome
-lefthook
-noctalia-qs
-noctalia-shell
+maplemono-ttf
 papirus-folders-git
-peazip
 pgadmin4-bin
 rate-mirrors-bin
 slack-desktop-wayland
@@ -17,5 +14,4 @@ tuxedo
 visual-studio-code-bin
 waterfox-bin
 witr
-wl-screenrec-git
 zen-browser-bin

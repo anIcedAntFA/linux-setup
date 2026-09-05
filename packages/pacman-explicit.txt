@@ -1,5 +1,6 @@
 7zip
 accountsservice
+adw-gtk-theme
 alacritty
 alsa-firmware
 alsa-plugins
@@ -11,15 +12,16 @@ base
 base-devel
 bash-completion
 bat
-bc
 bibata-cursor-theme-bin
 bind
 blueman
 bluez
 bluez-utils
+bruno-bin
 btop
 btrfs-progs
 cantarell-fonts
+chezmoi
 cliphist
 cryptsetup
 curlie
@@ -61,6 +63,7 @@ fastfetch
 fcitx5
 fcitx5-bamboo
 fcitx5-configtool
+fcitx5-hangul
 fd
 ffmpegthumbnailer
 firefox
@@ -124,6 +127,7 @@ lsscsi
 lvm2
 man-db
 man-pages
+maplemono-ttf
 mdadm
 meld
 mesa-utils
@@ -144,8 +148,7 @@ nfs-utils
 nilfs-utils
 niri
 nm-connection-editor
-noctalia-qs
-noctalia-shell
+noctalia
 noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
@@ -162,6 +165,7 @@ pacman-contrib
 papirus-folders-git
 papirus-icon-theme
 pavucontrol
+peazip
 peco
 perl
 pgadmin4-bin
@@ -171,6 +175,8 @@ pipewire-jack
 pipewire-pulse
 pkgfile
 plocate
+podman
+podman-compose
 poppler-glib
 postgresql
 power-profiles-daemon
@@ -211,6 +217,7 @@ ttf-liberation
 ttf-opensans
 tumbler
 turbo
+tuxedo
 unrar
 unzip
 upower
@@ -243,12 +250,13 @@ xorg-xinit
 xorg-xinput
 xorg-xkill
 xorg-xrandr
+xorg-xwininfo
 xterm
 xwayland-satellite
 yay
 zathura
+zed
 zellij
 zen-browser-bin
-zip
 zoxide
 zram-generator
